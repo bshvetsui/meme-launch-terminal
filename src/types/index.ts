@@ -11,6 +11,7 @@ export interface Token {
   hardcap: number;
   website?: string;
   x?: string;
+  twitter?: string;
   telegram?: string;
   version?: number;
   price?: number;
