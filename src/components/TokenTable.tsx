@@ -7,9 +7,13 @@ import './TokenTable.css';
 interface TokenTableProps {
   tokens: Token[];
   loading: boolean;
+  onTradeClick?: (token: Token) => void;
 }
 
-export const TokenTable = memo<TokenTableProps>(({ tokens, loading }) => {
+export const TokenTable = memo<TokenTableProps>(({ tokens, loading, onTradeClick }) => {
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
 
   if (loading) {
     return <div className="loading">Loading tokens...</div>;
@@ -51,7 +55,13 @@ export const TokenTable = memo<TokenTableProps>(({ tokens, loading }) => {
                   <span className="ca-address">
                     {shortenAddress(token.token || '')}
                   </span>
-                  <button className="btn-copy">📋</button>
+                  <button
+                    className="btn-copy"
+                    onClick={() => copyToClipboard(token.token || '')}
+                    title="Copy address"
+                  >
+                    📋
+                  </button>
                   <div className="ca-creator">
                     by {shortenAddress(token.creator || 'Unknown')}
                   </div>
@@ -97,7 +107,12 @@ export const TokenTable = memo<TokenTableProps>(({ tokens, loading }) => {
               </td>
 
               <td className="td-action">
-                <button className="btn-trade">⚡ Trade</button>
+                <button
+                  className="btn-trade"
+                  onClick={() => onTradeClick?.(token)}
+                >
+                  ⚡ Trade
+                </button>
               </td>
             </tr>
           ))}

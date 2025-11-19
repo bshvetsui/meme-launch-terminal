@@ -102,6 +102,15 @@ function App() {
     token.symbol?.toLowerCase().includes(searchQuery.toLowerCase())
   ), [tokens, searchQuery]);
 
+  const handleTradeClick = useCallback((token: Token) => {
+    if (!user) {
+      setShowLoginModal(true);
+    } else {
+      // Open trading interface (future implementation)
+      console.log('Trade token:', token);
+    }
+  }, [user]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -152,6 +161,7 @@ function App() {
         <TokenTable
           tokens={filteredTokens}
           loading={loading}
+          onTradeClick={handleTradeClick}
         />
       </main>
 
