@@ -1,6 +1,7 @@
 // Token table component matching the screenshot
 import React, { memo } from 'react';
 import type { Token } from '../types';
+import { formatPrice, formatVolume, formatProgress, getTimeAgo, shortenAddress } from '../utils/formatters';
 import './TokenTable.css';
 
 interface TokenTableProps {
@@ -9,37 +10,6 @@ interface TokenTableProps {
 }
 
 export const TokenTable = memo<TokenTableProps>(({ tokens, loading }) => {
-  const formatPrice = (price?: number) => {
-    if (!price) return '$0';
-    if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`;
-    if (price >= 1000) return `$${(price / 1000).toFixed(0)}K`;
-    return `$${price.toFixed(0)}`;
-  };
-
-  const formatVolume = (volume?: number) => {
-    if (!volume) return '$0';
-    if (volume >= 1000000) return `$${(volume / 1000000).toFixed(0)}M`;
-    if (volume >= 1000) return `$${(volume / 1000).toFixed(0)}K`;
-    return `$${volume.toFixed(0)}`;
-  };
-
-  const formatProgress = (current?: number, total?: number) => {
-    if (!current || !total) return 0;
-    return Math.min((current / total) * 100, 100);
-  };
-
-  const getTimeAgo = (timestamp?: number) => {
-    if (!timestamp) return 'now';
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return `${seconds}s ago`;
-  };
 
   if (loading) {
     return <div className="loading">Loading tokens...</div>;
@@ -79,11 +49,11 @@ export const TokenTable = memo<TokenTableProps>(({ tokens, loading }) => {
               <td className="td-ca">
                 <div className="ca-info">
                   <span className="ca-address">
-                    {token.token ? `${token.token.slice(0, 4)}...${token.token.slice(-4)}` : 'N/A'}
+                    {shortenAddress(token.token || '')}
                   </span>
                   <button className="btn-copy">📋</button>
                   <div className="ca-creator">
-                    by {token.creator ? `${token.creator.slice(0, 4)}...${token.creator.slice(-4)}` : 'Unknown'}
+                    by {shortenAddress(token.creator || 'Unknown')}
                   </div>
                 </div>
               </td>

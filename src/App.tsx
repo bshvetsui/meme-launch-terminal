@@ -7,6 +7,7 @@ import { CreateTokenModal } from './components/CreateTokenModal';
 import { useAuth } from './context/AuthContext';
 import { useWebSocket } from './hooks/useWebSocket';
 import { tokenApi } from './services/api';
+import { REFRESH_INTERVAL, MAX_TOKENS_DISPLAY } from './config/constants';
 import type { Token } from './types';
 import './App.css';
 
@@ -56,7 +57,7 @@ function App() {
       trades: 0,
       buys: 0,
     };
-    setTokens(prev => [newToken, ...prev.slice(0, 99)]); // Keep max 100 tokens
+    setTokens(prev => [newToken, ...prev.slice(0, MAX_TOKENS_DISPLAY - 1)]);
   }, []);
 
   const handleTradeUpdate = useCallback((trade: any) => {
@@ -88,7 +89,7 @@ function App() {
     fetchTokens();
 
     // Refresh interval
-    const interval = setInterval(fetchTokens, 30000);
+    const interval = setInterval(fetchTokens, REFRESH_INTERVAL);
 
     return () => {
       clearInterval(interval);

@@ -1,8 +1,6 @@
 // WebSocket manager for real-time updates
 import { Centrifuge, Subscription } from 'centrifuge';
-
-const WS_URL = 'wss://launch.meme/connection/websocket';
-const WS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJpYXQiOjE3NTcxNjY4ODh9.VEvlNmvIFS3ARM5R0jlNN4fwDDRz94WnKv8LDmtipNE';
+import { WS_URL, WS_TOKEN, WS_UPDATE_INTERVAL, TOKEN_NAMES, TOKEN_SUFFIXES } from '../config/constants';
 
 class WebSocketManager {
   private centrifuge: Centrifuge | null = null;
@@ -93,10 +91,8 @@ class WebSocketManager {
 
       // Simulate new tokens more frequently
       if (Math.random() > 0.9) {
-        const randomNames = ['PEPE', 'MOON', 'DOGE', 'SHIB', 'MEME', 'PUMP', 'CHAD', 'WOJAK'];
-        const randomSuffixes = ['2.0', 'X', 'PRO', 'MAX', 'TURBO', 'MEGA', 'ULTRA'];
-        const baseName = randomNames[Math.floor(Math.random() * randomNames.length)];
-        const suffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
+        const baseName = TOKEN_NAMES[Math.floor(Math.random() * TOKEN_NAMES.length)];
+        const suffix = TOKEN_SUFFIXES[Math.floor(Math.random() * TOKEN_SUFFIXES.length)];
 
         const newToken = {
           type: 'newToken',
@@ -111,7 +107,7 @@ class WebSocketManager {
         };
         this.emit('newToken', newToken);
       }
-    }, 1000); // Update every 1 second for more visible activity
+    }, WS_UPDATE_INTERVAL);
   }
 
   private getRandomToken(): string {
