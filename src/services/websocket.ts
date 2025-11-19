@@ -64,44 +64,54 @@ class WebSocketManager {
     // Simulate real-time updates for demonstration
     if (this.simulationInterval) return;
 
+    console.log('Starting WebSocket simulation mode...');
+
     this.simulationInterval = setInterval(() => {
-      // Simulate price updates
+      // Simulate price updates more frequently
       const priceUpdate = {
         type: 'price',
         token: this.getRandomToken(),
-        price: Math.random() * 0.01,
-        priceChange24h: (Math.random() - 0.5) * 20,
-        volume24h: Math.random() * 100000,
+        price: Math.random() * 0.01 + 0.0001,
+        priceChange24h: (Math.random() - 0.5) * 50,
+        volume24h: Math.random() * 500000 + 10000,
       };
       this.emit('priceUpdate', priceUpdate);
 
-      // Simulate new trades
-      if (Math.random() > 0.7) {
+      // Simulate trades more frequently
+      if (Math.random() > 0.3) {
         const trade = {
           type: 'trade',
           token: this.getRandomToken(),
-          side: Math.random() > 0.5 ? 'buy' : 'sell',
-          amount: Math.random() * 10,
-          price: Math.random() * 0.01,
+          side: Math.random() > 0.4 ? 'buy' : 'sell',
+          amount: Math.random() * 1000 + 10,
+          price: Math.random() * 0.01 + 0.0001,
           wallet: this.generateAddress(),
           timestamp: Date.now(),
         };
         this.emit('trade', trade);
       }
 
-      // Simulate new tokens occasionally
-      if (Math.random() > 0.95) {
+      // Simulate new tokens more frequently
+      if (Math.random() > 0.9) {
+        const randomNames = ['PEPE', 'MOON', 'DOGE', 'SHIB', 'MEME', 'PUMP', 'CHAD', 'WOJAK'];
+        const randomSuffixes = ['2.0', 'X', 'PRO', 'MAX', 'TURBO', 'MEGA', 'ULTRA'];
+        const baseName = randomNames[Math.floor(Math.random() * randomNames.length)];
+        const suffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
+
         const newToken = {
           type: 'newToken',
           token: this.generateAddress(),
-          name: `NEW${Math.floor(Math.random() * 1000)}`,
-          symbol: `NEW${Math.floor(Math.random() * 100)}`,
-          price: Math.random() * 0.001,
-          marketCap: Math.random() * 10000,
+          name: `${baseName} ${suffix}`,
+          symbol: `${baseName}${Math.floor(Math.random() * 100)}`,
+          price: Math.random() * 0.001 + 0.00001,
+          marketCap: Math.random() * 50000 + 1000,
+          volume24h: Math.random() * 10000,
+          holders: Math.floor(Math.random() * 10) + 1,
+          photo: `https://ui-avatars.com/api/?name=${baseName}&background=random`,
         };
         this.emit('newToken', newToken);
       }
-    }, 2000); // Update every 2 seconds
+    }, 1000); // Update every 1 second for more visible activity
   }
 
   private getRandomToken(): string {

@@ -1,0 +1,320 @@
+/* Responsive breakpoints for all screen sizes */
+
+/* Extra Large Screens - 1366px and above */
+@media (min-width: 1366px) {
+  .app-main {
+    max-width: 1320px;
+  }
+
+  .token-table {
+    font-size: 16px;
+  }
+
+  .token-avatar {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Large Screens - 1024px to 1365px */
+@media (min-width: 1024px) and (max-width: 1365px) {
+  .app-main {
+    max-width: 980px;
+    padding: 24px;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 14px 16px;
+  }
+
+  .token-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .btn-trade {
+    padding: 8px 20px;
+    font-size: 12px;
+  }
+}
+
+/* Medium Screens - 768px to 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-header {
+    padding: 16px 24px;
+  }
+
+  .logo {
+    font-size: 20px;
+  }
+
+  .logo-icon {
+    font-size: 28px;
+  }
+
+  .app-main {
+    padding: 20px;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .token-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .token-name {
+    font-size: 14px;
+  }
+
+  .btn-trade {
+    padding: 6px 16px;
+    font-size: 11px;
+  }
+
+  /* Hide some columns on medium screens */
+  .th-ca,
+  .td-ca {
+    display: none;
+  }
+
+  .progress-container {
+    min-width: 100px;
+  }
+}
+
+/* Small Screens - 480px to 767px */
+@media (min-width: 480px) and (max-width: 767px) {
+  .app-header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .logo-icon {
+    font-size: 24px;
+  }
+
+  .header-actions {
+    width: 100%;
+    margin-top: 12px;
+    justify-content: stretch;
+  }
+
+  .btn-create,
+  .btn-login {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+
+  .app-main {
+    padding: 16px;
+  }
+
+  .social-links {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .social-link {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .token-table {
+    font-size: 12px;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 10px 8px;
+  }
+
+  .token-info {
+    gap: 10px;
+  }
+
+  .token-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .token-name {
+    font-size: 13px;
+  }
+
+  .token-time {
+    font-size: 11px;
+  }
+
+  /* Hide more columns on small screens */
+  .th-ca,
+  .td-ca,
+  .th-progress,
+  .td-progress {
+    display: none;
+  }
+
+  .holders::before {
+    display: none;
+  }
+
+  .btn-trade {
+    padding: 5px 12px;
+    font-size: 10px;
+    border-radius: 6px;
+  }
+
+  /* Make table scrollable */
+  .token-table {
+    overflow-x: auto;
+  }
+
+  .token-table table {
+    min-width: 500px;
+  }
+}
+
+/* Extra Small Screens - below 480px */
+@media (max-width: 479px) {
+  .app-header {
+    padding: 10px 12px;
+  }
+
+  .logo {
+    font-size: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .logo-icon {
+    font-size: 20px;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .btn-create,
+  .btn-login {
+    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  .app-main {
+    padding: 12px;
+  }
+
+  .social-links {
+    display: none;
+  }
+
+  .token-table {
+    border-radius: 8px;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .token-info {
+    gap: 8px;
+  }
+
+  .token-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .token-name {
+    font-size: 12px;
+  }
+
+  .token-time {
+    display: none;
+  }
+
+  /* Show only essential columns */
+  .th-ca,
+  .td-ca,
+  .th-progress,
+  .td-progress,
+  .th-right:nth-child(4),
+  .td-right:nth-child(4) {
+    display: none;
+  }
+
+  .volume-count,
+  .market-price {
+    display: none;
+  }
+
+  .btn-trade {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+
+  /* Full width table scroll */
+  .token-table {
+    margin: 0 -12px;
+    border-radius: 0;
+  }
+
+  .token-table table {
+    min-width: 400px;
+  }
+}
+
+/* Search bar responsive adjustments */
+@media (max-width: 768px) {
+  .search-bar {
+    max-width: 100%;
+    margin: 12px 0;
+  }
+
+  .search-input {
+    padding: 10px 36px 10px 40px;
+    font-size: 14px;
+  }
+}
+
+/* Modal responsive adjustments */
+@media (max-width: 480px) {
+  .modal-content {
+    width: 95%;
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 24px;
+  }
+
+  .form-group input {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .btn-submit {
+    padding: 12px;
+    font-size: 14px;
+  }
+}

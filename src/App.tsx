@@ -2,15 +2,21 @@
 import { useState, useEffect } from 'react';
 import { TokenTable } from './components/TokenTable';
 import { SearchBar } from './components/SearchBar';
+import { LoginModal } from './components/LoginModal';
+import { CreateTokenModal } from './components/CreateTokenModal';
+import { useAuth } from './context/AuthContext';
 import { tokenApi } from './services/api';
 import { wsManager } from './services/websocket';
 import type { Token } from './types';
 import './App.css';
 
 function App() {
+  const { user, logout } = useAuth();
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     // Fetch initial tokens
@@ -22,12 +28,16 @@ function App() {
     // Subscribe to updates
     wsManager.on('priceUpdate', handlePriceUpdate);
     wsManager.on('newToken', handleNewToken);
+    wsManager.on('trade', handleTradeUpdate);
 
     // Refresh interval
     const interval = setInterval(fetchTokens, 30000);
 
     return () => {
       clearInterval(interval);
+      wsManager.off('priceUpdate', handlePriceUpdate);
+      wsManager.off('newToken', handleNewToken);
+      wsManager.off('trade', handleTradeUpdate);
       wsManager.disconnect();
     };
   }, []);
@@ -44,15 +54,50 @@ function App() {
   };
 
   const handlePriceUpdate = (update: any) => {
-    setTokens(prev => prev.map(token =>
-      token.token === update.token
-        ? { ...token, ...update }
-        : token
-    ));
+    setTokens(prev => prev.map(token => {
+      if (token.token === update.token) {
+        // Animate the price change with updated values
+        const updatedToken = {
+          ...token,
+          price: update.price || token.price,
+          priceChange24h: update.priceChange24h || token.priceChange24h,
+          volume24h: update.volume24h || token.volume24h,
+          marketCap: (update.price || token.price) * (token.supply || 1000000000),
+          trades: (token.trades || 0) + 1,
+        };
+        return updatedToken;
+      }
+      return token;
+    }));
   };
 
   const handleNewToken = (token: Token) => {
-    setTokens(prev => [token, ...prev]);
+    // Add new token with animation effect
+    const newToken = {
+      ...token,
+      createdAt: Date.now(),
+      holders: 1,
+      trades: 0,
+      buys: 0,
+    };
+    setTokens(prev => [newToken, ...prev.slice(0, 99)]); // Keep max 100 tokens
+  };
+
+  const handleTradeUpdate = (trade: any) => {
+    setTokens(prev => prev.map(token => {
+      if (token.token === trade.token) {
+        const isBuy = trade.side === 'buy';
+        return {
+          ...token,
+          trades: (token.trades || 0) + 1,
+          buys: (token.buys || 0) + (isBuy ? 1 : 0),
+          volume24h: (token.volume24h || 0) + trade.amount,
+          holders: isBuy ? (token.holders || 0) + 1 : token.holders,
+          price: trade.price || token.price,
+        };
+      }
+      return token;
+    }));
   };
 
   const filteredTokens = tokens.filter(token =>
@@ -75,8 +120,26 @@ function App() {
         />
 
         <div className="header-actions">
-          <button className="btn-create">Create Meme</button>
-          <button className="btn-login">Login</button>
+          <button
+            className="btn-create"
+            onClick={() => user ? setShowCreateModal(true) : setShowLoginModal(true)}
+          >
+            Create Meme
+          </button>
+          {user ? (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <span style={{ color: 'var(--primary)', fontSize: '14px' }}>
+                {user.email}
+              </span>
+              <button className="btn-login" onClick={logout}>
+                Logout
+              </button>
+            </div>
+          ) : (
+            <button className="btn-login" onClick={() => setShowLoginModal(true)}>
+              Login
+            </button>
+          )}
         </div>
       </header>
 
@@ -95,6 +158,28 @@ function App() {
           loading={loading}
         />
       </main>
+
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={() => {
+            setShowLoginModal(false);
+            // Optionally refresh tokens after login
+            fetchTokens();
+          }}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateTokenModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(newToken) => {
+            setShowCreateModal(false);
+            // Add the new token to the list
+            setTokens(prev => [newToken, ...prev]);
+          }}
+        />
+      )}
     </div>
   );
 }
