@@ -112,11 +112,30 @@
   background: rgba(0, 255, 136, 0.1);
 }
 
-/* Mobile responsive */
+/* Responsive - 1366px */
+@media (max-width: 1366px) {
+  .app-main {
+    padding: 28px;
+  }
+}
+
+/* Responsive - 1024px */
+@media (max-width: 1024px) {
+  .app-main {
+    padding: 24px;
+  }
+
+  .app-header {
+    padding: 18px 28px;
+  }
+}
+
+/* Responsive - 768px */
 @media (max-width: 768px) {
   .app-header {
     flex-wrap: wrap;
     gap: 12px;
+    padding: 16px 20px;
   }
 
   .header-actions {
@@ -127,5 +146,52 @@
   .btn-create,
   .btn-login {
     flex: 1;
+  }
+
+  .app-main {
+    padding: 20px;
+  }
+
+  .social-links {
+    gap: 16px;
+  }
+}
+
+/* Responsive - 480px */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 12px 16px;
+  }
+
+  .logo {
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .logo-icon {
+    font-size: 24px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .btn-create,
+  .btn-login {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+
+  .app-main {
+    padding: 16px;
+  }
+
+  .social-links {
+    margin-bottom: 20px;
+  }
+
+  .social-link {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 }

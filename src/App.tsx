@@ -4,6 +4,7 @@ import { TokenTable } from './components/TokenTable';
 import { SearchBar } from './components/SearchBar';
 import { LoginModal } from './components/LoginModal';
 import { CreateTokenModal } from './components/CreateTokenModal';
+import { TradeModal } from './components/TradeModal';
 import { useAuth } from './context/AuthContext';
 import { useWebSocket } from './hooks/useWebSocket';
 import { tokenApi } from './services/api';
@@ -18,6 +19,8 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
   const fetchTokens = useCallback(async () => {
     try {
@@ -106,8 +109,8 @@ function App() {
     if (!user) {
       setShowLoginModal(true);
     } else {
-      // Open trading interface (future implementation)
-      console.log('Trade token:', token);
+      setSelectedToken(token);
+      setShowTradeModal(true);
     }
   }, [user]);
 
@@ -183,6 +186,16 @@ function App() {
             setShowCreateModal(false);
             // Add the new token to the list
             setTokens(prev => [newToken, ...prev]);
+          }}
+        />
+      )}
+
+      {showTradeModal && selectedToken && (
+        <TradeModal
+          token={selectedToken}
+          onClose={() => {
+            setShowTradeModal(false);
+            setSelectedToken(null);
           }}
         />
       )}
