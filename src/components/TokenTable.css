@@ -267,31 +267,142 @@
   font-size: 16px;
 }
 
-/* Responsive */
+/* Responsive - 1366px */
+@media (max-width: 1366px) {
+  .token-table {
+    font-size: 14px;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 14px 16px;
+  }
+
+  .token-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .btn-trade {
+    padding: 8px 20px;
+    font-size: 12px;
+  }
+}
+
+/* Responsive - 1024px */
 @media (max-width: 1024px) {
+  .token-table {
+    font-size: 13px;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 12px 14px;
+  }
+
+  .token-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
   .th-ca,
   .td-ca {
     display: none;
   }
+
+  .btn-trade {
+    padding: 6px 16px;
+    font-size: 11px;
+  }
 }
 
+/* Responsive - 768px */
 @media (max-width: 768px) {
-  .th-progress,
-  .td-progress,
-  .holders::before {
-    display: none;
-  }
-
   .token-table {
-    border-radius: 12px;
+    font-size: 12px;
+    overflow-x: auto;
   }
 
   .token-table table {
     min-width: 600px;
   }
 
+  .token-table th,
+  .token-table td {
+    padding: 10px 8px;
+  }
+
   .token-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .token-name {
+    font-size: 13px;
+  }
+
+  .th-progress,
+  .td-progress {
+    display: none;
+  }
+
+  .holders::before {
+    display: none;
+  }
+
+  .btn-trade {
+    padding: 5px 12px;
+    font-size: 10px;
+  }
+}
+
+/* Responsive - 480px */
+@media (max-width: 480px) {
+  .token-table {
+    font-size: 11px;
+    margin: 0 -12px;
+    border-radius: 0;
+  }
+
+  .token-table table {
+    min-width: 100%;
+  }
+
+  .token-table th,
+  .token-table td {
+    padding: 8px 6px;
+  }
+
+  .token-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .token-name {
+    font-size: 12px;
+  }
+
+  .token-time {
+    display: none;
+  }
+
+  /* Show only essential columns on mobile */
+  .th-ca,
+  .td-ca,
+  .th-progress,
+  .td-progress,
+  .th-right:nth-child(4),
+  .td-right:nth-child(4) {
+    display: none;
+  }
+
+  .volume-count,
+  .market-price {
+    display: none;
+  }
+
+  .btn-trade {
+    padding: 4px 8px;
+    font-size: 9px;
   }
 }

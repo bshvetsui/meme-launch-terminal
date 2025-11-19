@@ -4,17 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import './LoginModal.css';
 
 interface LoginModalProps {
-  isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +22,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     try {
       await login(email);
       setEmail('');
+      onSuccess?.();
       onClose();
     } catch (err: any) {
       setError(err.message || 'Login failed');

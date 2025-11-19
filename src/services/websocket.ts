@@ -75,8 +75,8 @@ class WebSocketManager {
       };
       this.emit('priceUpdate', priceUpdate);
 
-      // Simulate trades more frequently
-      if (Math.random() > 0.3) {
+      // Simulate trades less frequently for performance
+      if (Math.random() > 0.7) {
         const trade = {
           type: 'trade',
           token: this.getRandomToken(),
@@ -89,8 +89,8 @@ class WebSocketManager {
         this.emit('trade', trade);
       }
 
-      // Simulate new tokens more frequently
-      if (Math.random() > 0.9) {
+      // Simulate new tokens less frequently for performance
+      if (Math.random() > 0.95) {
         const baseName = TOKEN_NAMES[Math.floor(Math.random() * TOKEN_NAMES.length)];
         const suffix = TOKEN_SUFFIXES[Math.floor(Math.random() * TOKEN_SUFFIXES.length)];
 

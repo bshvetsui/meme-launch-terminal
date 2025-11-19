@@ -71,8 +71,8 @@ function getRandomColor(): string {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-// Generate 100 mock tokens
-export const mockTokens: Token[] = Array.from({ length: 100 }, (_, i) => generateRandomToken(i));
+// Generate 30 mock tokens for better performance
+export const mockTokens: Token[] = Array.from({ length: 30 }, (_, i) => generateRandomToken(i));
 
 // Add some special trending tokens
 export const trendingTokens: Token[] = [
