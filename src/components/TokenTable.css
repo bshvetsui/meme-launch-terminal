@@ -1,0 +1,245 @@
+/* Token table styles */
+.token-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.token-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.token-table thead {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.token-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.th-right,
+.td-right {
+  text-align: right !important;
+}
+
+.th-action,
+.td-action {
+  text-align: center !important;
+}
+
+.token-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
+}
+
+.token-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.token-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* Token info column */
+.token-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.token-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
+.token-name {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.token-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* CA column */
+.ca-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ca-address {
+  font-family: monospace;
+  font-size: 13px;
+  color: #111827;
+}
+
+.btn-copy {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.btn-copy:hover {
+  opacity: 1;
+}
+
+.ca-creator {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Volume column */
+.volume-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.volume-amount {
+  font-weight: 600;
+  color: #111827;
+}
+
+.volume-count {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Market cap column */
+.market-cap {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.market-price {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+/* Progress column */
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+  transition: width 0.3s;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.progress-percent {
+  color: #6b7280;
+}
+
+.progress-change .positive {
+  color: #10b981;
+}
+
+.progress-change .negative {
+  color: #ef4444;
+}
+
+/* Holders column */
+.holders {
+  font-weight: 500;
+  color: #111827;
+}
+
+/* Trade button */
+.btn-trade {
+  padding: 8px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-trade:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Loading state */
+.loading {
+  padding: 48px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* Empty state */
+.empty-state {
+  padding: 48px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .th-ca,
+  .td-ca {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .th-progress,
+  .td-progress {
+    display: none;
+  }
+
+  .token-table {
+    overflow-x: auto;
+  }
+
+  .token-table table {
+    min-width: 600px;
+  }
+}

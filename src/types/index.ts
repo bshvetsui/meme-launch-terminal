@@ -20,6 +20,11 @@ export interface Token {
   holders?: number;
   liquidity?: number;
   createdAt?: number;
+  creator?: string;
+  raised?: number;
+  trades?: number;
+  buys?: number;
+  sells?: number;
 }
 
 export interface Transaction {
