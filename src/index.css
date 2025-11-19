@@ -69,8 +69,4 @@ body {
   background: linear-gradient(180deg, var(--secondary), var(--accent));
 }
 
-/* Optimized animations - removed heavy ones */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* All animations removed for performance */

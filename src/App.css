@@ -56,36 +56,16 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-create::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: var(--primary);
-  transition: left 0.3s;
-  z-index: -1;
-}
-
-.btn-create:hover::before {
-  left: 0;
 }
 
 .btn-create:hover {
+  background: var(--primary);
   color: var(--bg-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
 }
 
 .btn-login {
   padding: 12px 28px;
-  background: linear-gradient(135deg, var(--secondary), var(--accent));
+  background: var(--secondary);
   color: white;
   border: none;
   border-radius: 30px;
@@ -94,13 +74,10 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(255, 0, 255, 0.3);
 }
 
 .btn-login:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(255, 0, 255, 0.5);
+  background: var(--accent);
 }
 
 .app-main {
@@ -127,14 +104,12 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.02);
-  transition: all 0.3s;
 }
 
 .social-link:hover {
   color: var(--primary);
   border-color: var(--primary);
   background: rgba(0, 255, 136, 0.1);
-  transform: translateY(-2px);
 }
 
 /* Mobile responsive */

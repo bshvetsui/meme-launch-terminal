@@ -32,7 +32,6 @@
   color: var(--text-muted);
   font-size: 24px;
   cursor: pointer;
-  transition: color 0.2s;
   width: 32px;
   height: 32px;
   display: flex;
