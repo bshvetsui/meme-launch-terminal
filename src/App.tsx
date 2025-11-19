@@ -119,7 +119,7 @@ function App() {
       <header className="app-header">
         <div className="logo">
           <span className="logo-icon">🚀</span>
-          <span className="logo-text">LAUNCH MEME</span>
+          <span className="logo-text">MEML</span>
         </div>
 
         <SearchBar
@@ -153,7 +153,7 @@ function App() {
 
       <main className="app-main">
         <div className="social-links">
-          <a href="#" className="social-link">
+          <a href="https://t.me/alinasidrr" target="_blank" rel="noopener noreferrer" className="social-link">
             <svg viewBox="0 0 24 24" width="20" height="20">
               <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
