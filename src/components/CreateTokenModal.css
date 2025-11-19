@@ -77,6 +77,8 @@
     max-width: none;
     padding: 20px;
     border-radius: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
   .modal-header h2 {
