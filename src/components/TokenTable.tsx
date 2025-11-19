@@ -111,7 +111,7 @@ export const TokenTable = memo<TokenTableProps>(({ tokens, loading, onTradeClick
                   className="btn-trade"
                   onClick={() => onTradeClick?.(token)}
                 >
-                  ⚡ Trade
+                  Trade
                 </button>
               </td>
             </tr>

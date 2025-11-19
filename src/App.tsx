@@ -118,7 +118,6 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="logo">
-          <span className="logo-icon">🚀</span>
           <span className="logo-text">MEML</span>
         </div>
 
