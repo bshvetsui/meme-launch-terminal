@@ -28,7 +28,8 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({ onClose, onS
     setLoading(true);
 
     try {
-      const token = await tokenApi.createDraft({
+      // Step 1: Create draft
+      const draftData = {
         name: formData.name,
         symbol: formData.symbol,
         description: formData.description,
@@ -37,11 +38,24 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({ onClose, onS
         telegram: formData.telegram,
         website: formData.website,
         supply: parseInt(formData.supply),
-      });
+      };
 
-      onSuccess(token);
-    } catch (err) {
-      setError('Failed to create token. Please try again.');
+      const draft = await tokenApi.createDraft(draftData);
+
+      // Step 2: Generate token transaction
+      const generateResponse = await tokenApi.generateTokenTx(draft.token);
+
+      // Step 3: Sign transaction (in real app would use wallet)
+      // For now, just simulate success
+      const signedToken = {
+        ...draft,
+        ...generateResponse,
+        status: 'pending'
+      };
+
+      onSuccess(signedToken);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create token. Please try again.');
     } finally {
       setLoading(false);
     }

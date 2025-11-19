@@ -1,13 +1,14 @@
 /* Create Token Modal Styles */
 .form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 20px;
 }
 
 .form-row .form-group {
-  flex: 1;
   margin-bottom: 0;
+  min-width: 0; /* Prevent overflow */
 }
 
 .form-group textarea {
@@ -27,10 +28,16 @@
   border-color: var(--primary);
 }
 
+/* Base modal styles */
+.modal-content {
+  max-width: 540px !important; /* Ensure enough space */
+  width: 90%;
+}
+
 /* Responsive - 1366px */
 @media (max-width: 1366px) {
   .modal-content {
-    max-width: 500px;
+    max-width: 520px !important;
   }
 }
 
@@ -54,7 +61,7 @@
   }
 
   .form-row {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: 0;
   }
 
@@ -88,6 +95,6 @@
   }
 
   .form-row {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }
