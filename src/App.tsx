@@ -1,12 +1,12 @@
 // Main app component with token table
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { TokenTable } from './components/TokenTable';
 import { SearchBar } from './components/SearchBar';
 import { LoginModal } from './components/LoginModal';
 import { CreateTokenModal } from './components/CreateTokenModal';
 import { useAuth } from './context/AuthContext';
+import { useWebSocket } from './hooks/useWebSocket';
 import { tokenApi } from './services/api';
-import { wsManager } from './services/websocket';
 import type { Token } from './types';
 import './App.css';
 
@@ -18,31 +18,7 @@ function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  useEffect(() => {
-    // Fetch initial tokens
-    fetchTokens();
-
-    // Connect WebSocket
-    wsManager.connect();
-
-    // Subscribe to updates
-    wsManager.on('priceUpdate', handlePriceUpdate);
-    wsManager.on('newToken', handleNewToken);
-    wsManager.on('trade', handleTradeUpdate);
-
-    // Refresh interval
-    const interval = setInterval(fetchTokens, 30000);
-
-    return () => {
-      clearInterval(interval);
-      wsManager.off('priceUpdate', handlePriceUpdate);
-      wsManager.off('newToken', handleNewToken);
-      wsManager.off('trade', handleTradeUpdate);
-      wsManager.disconnect();
-    };
-  }, []);
-
-  const fetchTokens = async () => {
+  const fetchTokens = useCallback(async () => {
     try {
       const data = await tokenApi.getTokens();
       setTokens(data);
@@ -51,9 +27,9 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handlePriceUpdate = (update: any) => {
+  const handlePriceUpdate = useCallback((update: any) => {
     setTokens(prev => prev.map(token => {
       if (token.token === update.token) {
         // Animate the price change with updated values
@@ -69,9 +45,9 @@ function App() {
       }
       return token;
     }));
-  };
+  }, []);
 
-  const handleNewToken = (token: Token) => {
+  const handleNewToken = useCallback((token: Token) => {
     // Add new token with animation effect
     const newToken = {
       ...token,
@@ -81,9 +57,9 @@ function App() {
       buys: 0,
     };
     setTokens(prev => [newToken, ...prev.slice(0, 99)]); // Keep max 100 tokens
-  };
+  }, []);
 
-  const handleTradeUpdate = (trade: any) => {
+  const handleTradeUpdate = useCallback((trade: any) => {
     setTokens(prev => prev.map(token => {
       if (token.token === trade.token) {
         const isBuy = trade.side === 'buy';
@@ -98,13 +74,32 @@ function App() {
       }
       return token;
     }));
-  };
+  }, []);
 
-  const filteredTokens = tokens.filter(token =>
+  // Use WebSocket hook
+  useWebSocket({
+    onPriceUpdate: handlePriceUpdate,
+    onNewToken: handleNewToken,
+    onTradeUpdate: handleTradeUpdate,
+  });
+
+  useEffect(() => {
+    // Fetch initial tokens
+    fetchTokens();
+
+    // Refresh interval
+    const interval = setInterval(fetchTokens, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [fetchTokens]);
+
+  const filteredTokens = useMemo(() => tokens.filter(token =>
     searchQuery === '' ||
     token.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     token.symbol?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [tokens, searchQuery]);
 
   return (
     <div className="app">

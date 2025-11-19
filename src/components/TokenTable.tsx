@@ -1,5 +1,5 @@
 // Token table component matching the screenshot
-import React from 'react';
+import React, { memo } from 'react';
 import type { Token } from '../types';
 import './TokenTable.css';
 
@@ -8,7 +8,7 @@ interface TokenTableProps {
   loading: boolean;
 }
 
-export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
+export const TokenTable = memo<TokenTableProps>(({ tokens, loading }) => {
   const formatPrice = (price?: number) => {
     if (!price) return '$0';
     if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`;
@@ -141,4 +141,4 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
       )}
     </div>
   );
-};
+});
