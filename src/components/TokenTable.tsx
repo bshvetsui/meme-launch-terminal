@@ -1,5 +1,5 @@
 // Token table component matching the screenshot
-import React, { memo } from 'react';
+import { memo } from 'react';
 import type { Token } from '../types';
 import { formatPrice, formatVolume, formatProgress, getTimeAgo, shortenAddress } from '../utils/formatters';
 import './TokenTable.css';

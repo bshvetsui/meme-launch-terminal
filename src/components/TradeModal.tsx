@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Token } from '../types';
-import { formatPrice, formatVolume, shortenAddress } from '../utils/formatters';
+import { formatVolume, shortenAddress } from '../utils/formatters';
 import './TradeModal.css';
 
 interface TradeModalProps {

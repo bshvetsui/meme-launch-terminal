@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { wsManager } from '../services/websocket';
 import type { Token } from '../types';
 
