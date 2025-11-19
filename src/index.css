@@ -1,15 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* Global styles */
 :root {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0A0B0F;
+  color-scheme: light;
+  color: #1a1a1a;
+  background-color: #f9fafb;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,11 +24,9 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0A0B0F 0%, #1A1B23 100%);
+  background: #f9fafb;
 }
 
 #root {
@@ -39,48 +36,19 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1A1B23;
+  background: #f3f4f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #00D4FF;
-  border-radius: 3px;
+  background: #9ca3af;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00A4CF;
-}
-
-/* Animation classes */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: .5;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Custom utility classes */
-.glass-effect {
-  background: rgba(26, 27, 35, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.text-gradient {
-  background: linear-gradient(90deg, #00D4FF 0%, #00FF88 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: #6b7280;
 }
