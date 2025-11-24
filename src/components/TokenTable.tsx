@@ -1,7 +1,7 @@
-// Token table component matching the screenshot
 import React from 'react';
 import type { Token } from '../types';
 import './TokenTable.css';
+import { ArrowUpRight, Copy } from 'lucide-react';
 
 interface TokenTableProps {
   tokens: Token[];
@@ -41,6 +41,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
     return `${seconds}s ago`;
   };
 
+  const copyValue = (value?: string) => {
+    if (!value || typeof navigator === 'undefined') return;
+    navigator.clipboard?.writeText(value).catch(() => {});
+  };
+
   if (loading) {
     return <div className="loading">Loading tokens...</div>;
   }
@@ -50,13 +55,13 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
       <table>
         <thead>
           <tr>
-            <th className="th-token">TOKEN</th>
+            <th className="th-token">Token</th>
             <th className="th-ca">CA</th>
-            <th className="th-right">VOLUME</th>
-            <th className="th-right">MARKET CAP</th>
-            <th className="th-progress">PROGRESS</th>
-            <th className="th-right"># HOLDERS</th>
-            <th className="th-action">TRADE</th>
+            <th className="th-right">Volume</th>
+            <th className="th-right">Market Cap</th>
+            <th className="th-progress">Progress</th>
+            <th className="th-right">Holders</th>
+            <th className="th-action">Trade</th>
           </tr>
         </thead>
         <tbody>
@@ -81,7 +86,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
                   <span className="ca-address">
                     {token.token ? `${token.token.slice(0, 4)}...${token.token.slice(-4)}` : 'N/A'}
                   </span>
-                  <button className="btn-copy">📋</button>
+                  <button className="btn-copy" onClick={() => copyValue(token.token)} aria-label="Copy CA">
+                    <Copy size={14} />
+                  </button>
                   <div className="ca-creator">
                     by {token.creator ? `${token.creator.slice(0, 4)}...${token.creator.slice(-4)}` : 'Unknown'}
                   </div>
@@ -91,7 +98,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
               <td className="td-right">
                 <div className="volume-info">
                   <div className="volume-amount">{formatVolume(token.volume24h)}</div>
-                  <div className="volume-count">{token.trades || 0} / {token.buys || 0}</div>
+                  <div className="volume-count">
+                    {token.trades || 0} / {token.buys || 0}
+                  </div>
                 </div>
               </td>
 
@@ -109,14 +118,16 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
                     />
                   </div>
                   <div className="progress-stats">
-                    <span className="progress-percent">{formatProgress(token.raised, token.hardcap).toFixed(2)}%</span>
-                    <span className="progress-change">
-                      {token.priceChange24h ?
-                        <span className={token.priceChange24h > 0 ? 'positive' : 'negative'}>
-                          {token.priceChange24h > 0 ? '↑' : '↓'} {Math.abs(token.priceChange24h).toFixed(2)}%
-                        </span>
-                        : '0.00%'
-                      }
+                    <span className="progress-percent">
+                      {formatProgress(token.raised, token.hardcap).toFixed(2)}%
+                    </span>
+                    <span
+                      className={`price-change ${
+                        (token.priceChange24h ?? 0) >= 0 ? 'positive' : 'negative'
+                      }`}
+                    >
+                      {(token.priceChange24h ?? 0) >= 0 ? '+' : '-'}{' '}
+                      {Math.abs(token.priceChange24h ?? 0).toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -127,7 +138,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
               </td>
 
               <td className="td-action">
-                <button className="btn-trade">⚡ Trade</button>
+                <button className="btn-trade">
+                  Trade <ArrowUpRight size={14} />
+                </button>
               </td>
             </tr>
           ))}

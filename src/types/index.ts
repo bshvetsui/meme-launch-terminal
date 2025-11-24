@@ -123,3 +123,17 @@ export interface CreateOrderDto {
   enableStopLoss?: boolean;
   enableTakeProfit?: boolean;
 }
+
+export interface NewsPost {
+  id: string;
+  author: string;
+  handle: string;
+  avatar: string;
+  content: string;
+  timestamp: number;
+  likes: number;
+  retweets: number;
+  replies: number;
+  verified?: boolean;
+  images?: string[];
+}

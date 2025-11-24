@@ -1,5 +1,5 @@
 // Mock data for demonstration purposes
-import type { Token, Transaction, ChatMessage, UserProfile, Order } from '../types';
+import type { Token, Transaction, ChatMessage, UserProfile, Order, Reward, NewsPost } from '../types';
 
 export const mockTokens: Token[] = [
   {
@@ -9,7 +9,7 @@ export const mockTokens: Token[] = [
     description: 'First meme token on Solana',
     decimals: 9,
     supply: 1000000000,
-    photo: 'https://via.placeholder.com/50',
+    photo: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=200&h=200&q=80',
     hardcap: 85.0,
     price: 0.01234,
     priceChange24h: 12.5,
@@ -26,7 +26,7 @@ export const mockTokens: Token[] = [
     description: 'Supreme best token',
     decimals: 9,
     supply: 5000000000,
-    photo: 'https://via.placeholder.com/50',
+    photo: 'https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?auto=format&fit=crop&w=200&h=200&q=80',
     hardcap: 100.0,
     price: 0.00567,
     priceChange24h: -5.3,
@@ -43,7 +43,7 @@ export const mockTokens: Token[] = [
     description: 'Meta MC token',
     decimals: 9,
     supply: 2000000000,
-    photo: 'https://via.placeholder.com/50',
+    photo: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=200&h=200&q=80',
     hardcap: 50.0,
     price: 0.00234,
     priceChange24h: 8.7,
@@ -60,7 +60,7 @@ export const mockTokens: Token[] = [
     description: 'DeFi Last token',
     decimals: 9,
     supply: 3000000000,
-    photo: 'https://via.placeholder.com/50',
+    photo: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=200&h=200&q=80',
     hardcap: 75.0,
     price: 0.00456,
     priceChange24h: -2.1,
@@ -77,7 +77,7 @@ export const mockTokens: Token[] = [
     description: 'Golden Luna Mila token',
     decimals: 9,
     supply: 1500000000,
-    photo: 'https://via.placeholder.com/50',
+    photo: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=200&h=200&q=80',
     hardcap: 60.0,
     price: 0.00789,
     priceChange24h: 15.3,
@@ -218,6 +218,129 @@ export const mockPortfolio = {
   totalPnl: 1087.5,
 };
 
+export const mockPortfolioHistory: Array<{ label: string; value: number; pnl: number; deposits: number }> = [
+  { label: '09:00', value: 6840, pnl: 340, deposits: 1200 },
+  { label: '10:00', value: 6955, pnl: 455, deposits: 1200 },
+  { label: '11:00', value: 7025, pnl: 525, deposits: 1200 },
+  { label: '12:00', value: 7148, pnl: 648, deposits: 1200 },
+  { label: '13:00', value: 7215, pnl: 715, deposits: 1200 },
+  { label: '14:00', value: 7298, pnl: 798, deposits: 1200 },
+  { label: '15:00', value: 7410, pnl: 910, deposits: 1200 },
+  { label: '16:00', value: 7524, pnl: 1024, deposits: 1200 },
+  { label: '17:00', value: 7640, pnl: 1140, deposits: 1200 },
+  { label: '18:00', value: 7724, pnl: 1224, deposits: 1200 },
+  { label: '19:00', value: 7810, pnl: 1310, deposits: 1200 },
+  { label: '20:00', value: 7935, pnl: 1435, deposits: 1200 },
+];
+
+export const mockAllocation = [
+  { name: 'BOOK', symbol: 'BOOK', value: 46, color: '#7ae0ff' },
+  { name: 'GJLF', symbol: 'GJLF', value: 32, color: '#c08bff' },
+  { name: 'ABC', symbol: 'ABC', value: 14, color: '#7df7c2' },
+  { name: 'DEFI', symbol: 'DEFI', value: 8, color: '#ff8ba7' },
+];
+
+export const mockFlowSeries: Array<{ label: string; inflow: number; outflow: number }> = [
+  { label: 'T-50m', inflow: 420, outflow: 180 },
+  { label: 'T-40m', inflow: 360, outflow: 140 },
+  { label: 'T-30m', inflow: 510, outflow: 220 },
+  { label: 'T-20m', inflow: 480, outflow: 260 },
+  { label: 'T-10m', inflow: 540, outflow: 210 },
+  { label: 'Now', inflow: 590, outflow: 240 },
+];
+
+export const mockAlphaSeries: Array<{ label: string; alpha: number; beta: number }> = [
+  { label: 'Mon', alpha: 1.08, beta: 0.82 },
+  { label: 'Tue', alpha: 1.12, beta: 0.85 },
+  { label: 'Wed', alpha: 1.09, beta: 0.81 },
+  { label: 'Thu', alpha: 1.15, beta: 0.9 },
+  { label: 'Fri', alpha: 1.18, beta: 0.94 },
+  { label: 'Sat', alpha: 1.14, beta: 0.88 },
+  { label: 'Sun', alpha: 1.16, beta: 0.9 },
+];
+
+export const mockRewards: Reward[] = [
+  {
+    id: 'reward-1',
+    wallet: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+    type: 'Liquidity Boost',
+    amount: 225,
+    description: 'Provided depth for BOOK/USDC pool',
+    timestamp: Date.now() - 3600 * 1000,
+    claimed: false,
+  },
+  {
+    id: 'reward-2',
+    wallet: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+    type: 'Referral',
+    amount: 75,
+    description: 'Invited 3 new creators to launch',
+    timestamp: Date.now() - 4 * 3600 * 1000,
+    claimed: true,
+  },
+  {
+    id: 'reward-3',
+    wallet: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+    type: 'Quest',
+    amount: 120,
+    description: 'Completed daily mint-and-bridge quest',
+    timestamp: Date.now() - 18 * 3600 * 1000,
+    claimed: false,
+  },
+];
+
+export const mockPools = [
+  {
+    id: 'pool-1',
+    name: 'BOOK / USDC',
+    tvl: 325000,
+    apr: 42.5,
+    volume24h: 185000,
+    fee: 0.25,
+    myLiquidity: 5200,
+    rewards: 180,
+  },
+  {
+    id: 'pool-2',
+    name: 'GJLF / SOL',
+    tvl: 187000,
+    apr: 28.1,
+    volume24h: 92000,
+    fee: 0.18,
+    myLiquidity: 2400,
+    rewards: 96,
+  },
+  {
+    id: 'pool-3',
+    name: 'DEFI / USDC',
+    tvl: 92000,
+    apr: 58.3,
+    volume24h: 63000,
+    fee: 0.3,
+    myLiquidity: 1400,
+    rewards: 74,
+  },
+];
+
+export const mockVaults = [
+  {
+    id: 'vault-1',
+    name: 'Orbiton Yield',
+    apy: 19.4,
+    tvl: 450000,
+    lockup: '7d',
+    deposited: 1200,
+  },
+  {
+    id: 'vault-2',
+    name: 'Stable Shield',
+    apy: 12.1,
+    tvl: 690000,
+    lockup: 'No lock',
+    deposited: 800,
+  },
+];
+
 // Chart data for price visualization
 export const mockChartData = [
   { time: '00:00', price: 0.01200 },
@@ -244,4 +367,106 @@ export const mockChartData = [
   { time: '21:00', price: 0.01278 },
   { time: '22:00', price: 0.01290 },
   { time: '23:00', price: 0.01234 },
+];
+
+// Mock news posts from X
+export const mockNewsPosts: NewsPost[] = [
+  {
+    id: 'post-1',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: 'MAJOR UPDATE: Our new DeFi vaults are now LIVE with up to 58% APY! 🚀\n\nWe\'ve completely reimagined yield farming for meme tokens. Now you can stake your favorite tokens, earn passive income, and participate in our exclusive governance system.\n\nKey features:\n• Auto-compounding every 8 hours\n• Zero fees for the first 30 days\n• Instant withdrawals (no lock periods)\n• Multi-chain support (Solana, ETH, Base)\n\nThe first 1000 users get a bonus 10% APY boost for 60 days. Don\'t miss out on this opportunity to maximize your gains while you sleep. Your meme portfolio deserves better returns.\n\nStart compounding today at meml.fun/vaults',
+    timestamp: Date.now() - 2 * 60 * 60 * 1000,
+    likes: 3847,
+    retweets: 1523,
+    replies: 584,
+    verified: true,
+  },
+  {
+    id: 'post-2',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: 'GM builders! 🌅 Today marks exactly 6 months since we launched MEML Terminal, and the numbers are absolutely insane:\n\n📊 Over 45,000 tokens created on our platform\n💰 $127M+ in total trading volume\n👥 89,000+ active wallets connected\n🔥 Zero downtime since launch\n\nBut we\'re just getting started. What began as a simple token launchpad has evolved into a full DeFi ecosystem. Our community has built something truly special - a place where meme culture meets serious yield opportunities.\n\nThis week we\'re rolling out:\n• Advanced limit orders with stop-loss\n• Portfolio tracking with P&L analytics\n• Mobile app beta (iOS & Android)\n• Referral program with 20% commission\n\nThank you to every single degen who believed in the vision. The best is yet to come. LFG! 🚀',
+    timestamp: Date.now() - 5 * 60 * 60 * 1000,
+    likes: 5241,
+    retweets: 2891,
+    replies: 756,
+    verified: true,
+    images: ['https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&h=400&q=80'],
+  },
+  {
+    id: 'post-3',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: 'Breaking down the MEML ecosystem for newcomers 🧵\n\nA lot of people ask "what makes MEML different?" - here\'s the full picture:\n\n1️⃣ INSTANT TOKEN CREATION\nLaunch your meme token in under 5 minutes. No coding, no complex smart contracts, no headaches. Just connect your wallet, set your parameters (name, symbol, supply, hardcap), and deploy directly to Solana, Ethereum, or Base. Our smart contracts are audited and battle-tested.\n\n2️⃣ BUILT-IN LIQUIDITY\nEvery token launched on MEML automatically gets a liquidity pool. No more rug pulls, no more manual LP management. We lock liquidity for 90 days minimum, with optional permanent locks for serious projects.\n\n3️⃣ DEFI INFRASTRUCTURE\nStake, farm, and provide liquidity all in one place. Our vaults offer industry-leading APY (up to 58%) with daily compounding. Plus, our upcoming lending protocol will let you borrow against your meme bags.\n\nStill have questions? Drop them below 👇',
+    timestamp: Date.now() - 8 * 60 * 60 * 1000,
+    likes: 2892,
+    retweets: 1234,
+    replies: 427,
+    verified: true,
+  },
+  {
+    id: 'post-4',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: '🎮 INTRODUCING: MEML Clicker Game!\n\nWe just dropped something completely unexpected - a fully functional idle clicker game built right into the terminal. Why? Because we believe DeFi should be FUN.\n\nHere\'s how it works:\n• Click to generate charge\n• Build streaks for multipliers\n• Unlock boost upgrades\n• Enable autopilot for passive gains\n• Compete on global leaderboards\n\nBut here\'s the twist: Your clicker progress converts to real rewards points that you can redeem for:\n✅ Fee discounts on token launches\n✅ Bonus APY in our vaults\n✅ Exclusive NFT drops\n✅ Early access to new features\n\nIt\'s gamification meets real utility. Every click counts. Every streak matters. Your addiction is now productive.\n\nFind it in the sidebar under "Clicker" with the ⚡ badge. Let\'s see who can hit 100k charge first!',
+    timestamp: Date.now() - 12 * 60 * 60 * 1000,
+    likes: 4456,
+    retweets: 2247,
+    replies: 923,
+    verified: true,
+  },
+  {
+    id: 'post-5',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: '🔍 SECURITY FIRST: How MEML Protects Your Funds\n\nWe get asked about security constantly, so here\'s complete transparency on our approach:\n\n🛡️ SMART CONTRACT SECURITY\n• All contracts audited by CertiK and Hacken\n• Multi-sig wallets (3/5 required)\n• Time-locked upgrades (48hr minimum)\n• Bug bounty program ($100k pool)\n\n🔐 USER PROTECTION\n• Non-custodial architecture (you control your keys)\n• Optional 2FA on all actions\n• Session timeouts and device tracking\n• Withdrawal whitelisting available\n\n📊 TRANSPARENCY\n• Real-time liquidity monitoring\n• On-chain verification for all operations\n• Public treasury dashboard\n• Monthly security reports\n\nWe\'ve handled over $127M in volume with ZERO security incidents. Your trust is our foundation, and we take that responsibility seriously. Sleep easy knowing your meme bags are protected by enterprise-grade security.\n\nQuestions? Our security docs are at meml.fun/security',
+    timestamp: Date.now() - 18 * 60 * 60 * 1000,
+    likes: 3567,
+    retweets: 1678,
+    replies: 534,
+    verified: true,
+  },
+  {
+    id: 'post-6',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: 'COMMUNITY SPOTLIGHT 🌟\n\nLast month, @CryptoBuilder launched $ORBITON on MEML with a $75 SOL hardcap. Within 72 hours:\n\n💎 Hit $2.1M market cap\n🚀 1,847 unique holders\n📈 Trading at 28x launch price\n🔥 Featured on major crypto news outlets\n\nWhat made it work? Three things:\n\n1. Strong narrative and branding\n2. Active community engagement (daily AMAs)\n3. Real utility roadmap (NFT collection + staking)\n\nThis is exactly why we built MEML - to give creators the tools they need to build legitimate projects, not just pump-and-dump schemes.\n\nOur platform handles the technical complexity, so you can focus on building community and delivering value. The infrastructure is here. The liquidity is here. The audience is here.\n\nWhat\'s YOUR token idea? We want to help you bring it to life. Drop your concepts below and let\'s make magic happen together. 🪄',
+    timestamp: Date.now() - 24 * 60 * 60 * 1000,
+    likes: 4789,
+    retweets: 1456,
+    replies: 689,
+    verified: true,
+  },
+  {
+    id: 'post-7',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: '📚 TUTORIAL: Your First Token in 5 Minutes\n\nI\'m seeing lots of newcomers, so here\'s a step-by-step guide to launching on MEML:\n\nSTEP 1: Connect & Authenticate\n• Hit "Login" in the top right\n• Choose email, socials, or magic link\n• Connect MetaMask or Trust Wallet\n• You\'re in!\n\nSTEP 2: Navigate to Create Token\n• Click "Create Token" in the sidebar\n• You\'ll see our simple creation form\n\nSTEP 3: Fill Token Details\n• Name: Your token\'s full name (e.g., "Orbiton")\n• Symbol: Ticker (e.g., "ORB")\n• Chain: Solana, Ethereum, Base, or Polygon\n• Supply: Total token amount (1B is common)\n• Hardcap: Max SOL to raise (we recommend 50-100)\n• Socials: Add your website, Telegram, X links\n\nSTEP 4: Review & Deploy\n• Preview your token configuration\n• Click "Save Draft" to test\n• When ready, hit "Deploy" and sign the transaction\n\nSTEP 5: Share & Grow\n• Your token is LIVE instantly\n• Share the link with your community\n• Watch the magic happen\n\nNo coding. No complexity. Just results. Welcome to the future of meme token creation! 🎉',
+    timestamp: Date.now() - 36 * 60 * 60 * 1000,
+    likes: 2987,
+    retweets: 1345,
+    replies: 392,
+    verified: true,
+    images: ['https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&h=400&q=80'],
+  },
+  {
+    id: 'post-8',
+    author: 'MEML Terminal',
+    handle: '@meml_terminal',
+    avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=100&h=100&q=80',
+    content: '🎯 ROADMAP UPDATE: What\'s Coming in Q1 2025\n\nThe team has been cooking behind the scenes, and we\'re ready to share what\'s next for MEML Terminal. This is going to be our biggest quarter yet:\n\n🌐 MULTI-CHAIN EXPANSION\nLaunching on Arbitrum, Optimism, and Avalanche. True multi-chain token creation with cross-chain bridging built-in.\n\n📱 MOBILE APP\niOS and Android apps entering public beta. Full terminal functionality in your pocket. Trade, create, and manage on the go.\n\n💱 ADVANCED TRADING\n• Limit orders with partial fills\n• Stop-loss and take-profit automation\n• Portfolio rebalancing tools\n• Copy trading for top performers\n\n🏆 REWARDS PROGRAM 2.0\nCompletely revamped rewards system with:\n• XP levels and achievements\n• Season passes with exclusive perks\n• Creator royalties and referrals\n• Staking multipliers\n\n🤝 PARTNERSHIPS\nMajor integrations coming with established DeFi protocols. Can\'t say more yet, but you\'ll want to be holding MEML tokens when we announce.\n\nThe vision is simple: make MEML the #1 destination for meme token creation AND serious DeFi yields. We\'re building the infrastructure that will power the next bull run.\n\nStay tuned. Big things incoming. 🔥',
+    timestamp: Date.now() - 48 * 60 * 60 * 1000,
+    likes: 6234,
+    retweets: 3567,
+    replies: 1278,
+    verified: true,
+  },
 ];

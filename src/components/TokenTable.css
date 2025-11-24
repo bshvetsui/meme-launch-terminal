@@ -1,9 +1,10 @@
 /* Token table styles */
 .token-table {
-  background: white;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(122, 224, 255, 0.2);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
 }
 
 .token-table table {
@@ -12,18 +13,17 @@
 }
 
 .token-table thead {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgba(122, 224, 255, 0.08);
 }
 
 .token-table th {
-  padding: 12px 16px;
+  padding: 12px 14px;
   text-align: left;
   font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
+  font-weight: 700;
+  color: #94a7c6;
   letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .th-right,
@@ -37,17 +37,19 @@
 }
 
 .token-table tbody tr {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .token-table tbody tr:hover {
-  background: #f9fafb;
+  background: rgba(122, 224, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .token-table td {
-  padding: 12px 16px;
+  padding: 12px 14px;
   font-size: 14px;
+  color: #e8f2ff;
 }
 
 /* Token info column */
@@ -58,22 +60,24 @@
 }
 
 .token-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   object-fit: cover;
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(122, 224, 255, 0.2);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
 .token-name {
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #e8f2ff;
   margin-bottom: 2px;
 }
 
 .token-time {
   font-size: 12px;
-  color: #9ca3af;
+  color: #94a7c6;
 }
 
 /* CA column */
@@ -84,30 +88,32 @@
 }
 
 .ca-address {
-  font-family: monospace;
+  font-family: 'Space Grotesk', monospace;
   font-size: 13px;
-  color: #111827;
+  color: #e8f2ff;
 }
 
 .btn-copy {
-  background: none;
-  border: none;
-  padding: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(122, 224, 255, 0.25);
+  padding: 4px 6px;
   cursor: pointer;
   font-size: 14px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-  display: inline-block;
-  margin-left: 4px;
+  border-radius: 8px;
+  color: #94a7c6;
+  width: fit-content;
+  transition: all 0.2s ease;
 }
 
 .btn-copy:hover {
-  opacity: 1;
+  color: #e8f2ff;
+  border-color: rgba(192, 139, 255, 0.6);
+  box-shadow: 0 6px 14px rgba(192, 139, 255, 0.2);
 }
 
 .ca-creator {
   font-size: 12px;
-  color: #9ca3af;
+  color: #94a7c6;
 }
 
 /* Volume column */
@@ -118,26 +124,26 @@
 }
 
 .volume-amount {
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #e8f2ff;
 }
 
 .volume-count {
   font-size: 12px;
-  color: #9ca3af;
+  color: #94a7c6;
 }
 
 /* Market cap column */
 .market-cap {
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #e8f2ff;
   margin-bottom: 2px;
 }
 
 .market-price {
   font-size: 12px;
-  color: #9ca3af;
-  font-family: monospace;
+  color: #94a7c6;
+  font-family: 'Space Grotesk', monospace;
 }
 
 /* Progress column */
@@ -145,80 +151,84 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 120px;
+  min-width: 140px;
 }
 
 .progress-bar {
-  height: 6px;
-  background: #f3f4f6;
-  border-radius: 3px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
-  transition: width 0.3s;
+  background: linear-gradient(90deg, #7ae0ff 0%, #c08bff 100%);
+  transition: width 0.3s ease;
 }
 
 .progress-stats {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
+  align-items: center;
 }
 
 .progress-percent {
-  color: #6b7280;
+  color: #94a7c6;
 }
 
-.progress-change .positive {
-  color: #10b981;
+.price-change {
+  font-weight: 700;
 }
 
-.progress-change .negative {
-  color: #ef4444;
+.price-change.positive {
+  color: #7df7c2;
+}
+
+.price-change.negative {
+  color: #ff8ba7;
 }
 
 /* Holders column */
 .holders {
-  font-weight: 500;
-  color: #111827;
+  font-weight: 600;
+  color: #e8f2ff;
 }
 
 /* Trade button */
 .btn-trade {
-  padding: 8px 20px;
-  background: #3b82f6;
-  color: white;
+  padding: 8px 16px;
+  background: linear-gradient(120deg, #7ae0ff 0%, #c08bff 100%);
+  color: #0c0f1b;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .btn-trade:hover {
-  background: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 12px 26px rgba(122, 224, 255, 0.3);
 }
 
 /* Loading state */
 .loading {
   padding: 48px;
   text-align: center;
-  color: #6b7280;
+  color: #94a7c6;
 }
 
 /* Empty state */
 .empty-state {
   padding: 48px;
   text-align: center;
-  color: #9ca3af;
+  color: #94a7c6;
 }
 
 /* Responsive */
@@ -231,15 +241,36 @@
 
 @media (max-width: 768px) {
   .th-progress,
-  .td-progress {
+  .td-progress,
+  .th-right:nth-child(6),
+  .td-right:nth-child(6) {
     display: none;
   }
 
-  .token-table {
-    overflow-x: auto;
+  .token-table th,
+  .token-table td {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .th-action,
+  .td-action {
+    display: none;
+  }
+
+  .token-table th,
+  .token-table td {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .token-avatar {
+    width: 36px;
+    height: 36px;
   }
 
   .token-table table {
-    min-width: 600px;
+    min-width: 100%;
   }
 }
