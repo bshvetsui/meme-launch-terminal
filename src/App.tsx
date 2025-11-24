@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useDeferredValue,
   useEffect,
@@ -466,99 +466,100 @@ export default function App() {
       if (demoPreviewEnabled) {
         const mock = target === "metaMask" ? "0xMetaDEMOc0ffee" : "0xTrustDEMOc0ffee";
         setDemoWalletAddress(mock);
-      toast.success(`Connected to ${targetWalletName} (demo)`);
-      return;
-    }
-
-    if (!isAuthenticated) {
-      toast.error("Authorize first, then connect a wallet");
-      return;
-    }
-
-    // Отключаем текущий кошелек полностью
-    if (isWalletConnected) {
-      toast(`Switching to ${targetWalletName}...`, { duration: 2000 });
-      disconnect();
-      await new Promise(resolve => setTimeout(resolve, 600));
-    }
-
-    // Проверяем наличие кошельков через window.ethereum
-    const ethereum = (window as any).ethereum;
-
-    if (!ethereum) {
-      toast.error("No wallet detected. Please install a wallet extension.");
-      return;
-    }
-
-    // Для MetaMask
-    if (target === "metaMask") {
-      if (!ethereum.isMetaMask && !ethereum.providers?.find((p: any) => p.isMetaMask)) {
-        toast.error("MetaMask not detected. Please install MetaMask extension.");
+        toast.success(`Connected to ${targetWalletName} (demo)`);
         return;
       }
 
-      // Если есть несколько провайдеров, выбираем MetaMask
-      if (ethereum.providers) {
-        const metamaskProvider = ethereum.providers.find((p: any) => p.isMetaMask);
-        if (metamaskProvider) {
-          (window as any).ethereum = metamaskProvider;
-        }
-      }
-    }
-
-    // Для Trust Wallet
-    if (target === "trust") {
-      if (!ethereum.isTrust && !ethereum.providers?.find((p: any) => p.isTrust)) {
-        toast.error("Trust Wallet not detected. Please install Trust Wallet extension.");
+      if (!isAuthenticated) {
+        toast.error("Authorize first, then connect a wallet");
         return;
       }
 
-      // Если есть несколько провайдеров, выбираем Trust Wallet
-      if (ethereum.providers) {
-        const trustProvider = ethereum.providers.find((p: any) => p.isTrust);
-        if (trustProvider) {
-          (window as any).ethereum = trustProvider;
-        }
+      // If a wallet is already connected, switch smoothly before reconnecting.
+      if (isWalletConnected) {
+        toast(`Switching to ${targetWalletName}...`, { duration: 2000 });
+        disconnect();
+        await new Promise(resolve => setTimeout(resolve, 600));
       }
-    }
 
-    // Находим или создаем коннектор
-    let connector = connectors.find(conn => {
-      const name = conn.name.toLowerCase();
+      // Ensure we have an injected provider.
+      const ethereum = (window as any).ethereum;
+
+      if (!ethereum) {
+        toast.error("No wallet detected. Please install a wallet extension.");
+        return;
+      }
+
+      // MetaMask flow
       if (target === "metaMask") {
-        return name.includes("metamask") || name.includes("meta mask");
+        if (!ethereum.isMetaMask && !ethereum.providers?.find((p: any) => p.isMetaMask)) {
+          toast.error("MetaMask not detected. Please install MetaMask extension.");
+          return;
+        }
+
+        // If multiple providers exist, prefer the MetaMask provider.
+        if (ethereum.providers) {
+          const metamaskProvider = ethereum.providers.find((p: any) => p.isMetaMask);
+          if (metamaskProvider) {
+            (window as any).ethereum = metamaskProvider;
+          }
+        }
       }
+
+      // Trust Wallet flow
       if (target === "trust") {
-        return name.includes("trust");
+        if (!ethereum.isTrust && !ethereum.providers?.find((p: any) => p.isTrust)) {
+          toast.error("Trust Wallet not detected. Please install Trust Wallet extension.");
+          return;
+        }
+
+        // If multiple providers exist, prefer the Trust Wallet provider.
+        if (ethereum.providers) {
+          const trustProvider = ethereum.providers.find((p: any) => p.isTrust);
+          if (trustProvider) {
+            (window as any).ethereum = trustProvider;
+          }
+        }
       }
-      return false;
-    });
 
-    // Fallback на Injected коннектор
-    if (!connector) {
-      connector = connectors.find(conn =>
-        conn.name.toLowerCase().includes("injected") ||
-        conn.name.toLowerCase().includes("inject")
-      );
-    }
+      // Resolve connector by target name.
+      let connector = connectors.find(conn => {
+        const name = conn.name.toLowerCase();
+        if (target === "metaMask") {
+          return name.includes("metamask") || name.includes("meta mask");
+        }
+        if (target === "trust") {
+          return name.includes("trust");
+        }
+        return false;
+      });
 
-    if (!connector) {
-      toast.error(`Could not find connector for ${targetWalletName}`);
-      return;
-    }
+      // Fallback to a generic injected connector.
+      if (!connector) {
+        connector = connectors.find(conn =>
+          conn.name.toLowerCase().includes("injected") ||
+          conn.name.toLowerCase().includes("inject"),
+        );
+      }
 
-    try {
-      await connectAsync({ connector });
-      toast.success(`Connected to ${targetWalletName}`);
-    } catch (error: any) {
-      console.error("Connection error:", error);
-      if (error?.message?.includes("User rejected") || error?.message?.includes("rejected")) {
-        toast.error("Connection rejected by user");
-      } else if (error?.message?.includes("Already processing")) {
-        toast.error("Please wait...");
-        setTimeout(() => handleConnect(target), 1000);
-      } else {
-        toast.error(error?.message || `Failed to connect to ${targetWalletName}`);
+      if (!connector) {
+        toast.error(`Could not find connector for ${targetWalletName}`);
+        return;
+      }
+
+      try {
+        await connectAsync({ connector });
+        toast.success(`Connected to ${targetWalletName}`);
+      } catch (error: any) {
+        console.error("Connection error:", error);
+        if (error?.message?.includes("User rejected") || error?.message?.includes("rejected")) {
+          toast.error("Connection rejected by user");
+        } else if (error?.message?.includes("Already processing")) {
+          toast.error("Please wait...");
+          setTimeout(() => handleConnect(target), 1000);
+        } else {
+          toast.error(error?.message || `Failed to connect to ${targetWalletName}`);
+        }
       }
     },
     [connectAsync, connectors, demoPreviewEnabled, disconnect, isAuthenticated, isWalletConnected],
@@ -2462,3 +2463,4 @@ export default function App() {
     </div>
   );
 }
+
