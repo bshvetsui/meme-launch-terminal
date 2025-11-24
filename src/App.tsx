@@ -129,6 +129,7 @@ const timeAgo = (timestamp: number) => {
 };
 
 export default function App() {
+  const demoPreviewEnabled = true;
   const [tokens, setTokens] = useState<Token[]>(mockTokens);
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
@@ -179,14 +180,19 @@ export default function App() {
     autopilot: false,
   });
   const [lastArcadeReward, setLastArcadeReward] = useState<Reward | null>(null);
+  const [demoWalletAddress, setDemoWalletAddress] = useState<string | null>(null);
 
   const { address, isConnected } = useAccount();
   const { connectors, connectAsync, isLoading, pendingConnector } = useConnect();
   const { disconnect } = useDisconnect();
 
-  const isWalletConnected = isConnected;
+  const isWalletConnected = isConnected || !!demoWalletAddress;
   const isAuthenticated = !!authSession;
-  const isOnchainReady = isAuthenticated && isWalletConnected;
+  const authReady = demoPreviewEnabled || isAuthenticated;
+  const walletReady = demoPreviewEnabled || isWalletConnected;
+  const isOnchainReady = authReady && walletReady;
+  const displayWalletAddress = shortAddress(demoWalletAddress ?? address);
+  const walletLabel = displayWalletAddress === "-" ? "Demo wallet" : displayWalletAddress;
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
       cursorRef.current = { x: event.clientX, y: event.clientY };
@@ -392,12 +398,19 @@ export default function App() {
   );
 
   const handleConnect = async (target: "metaMask" | "trust") => {
+    const targetWalletName = target === "metaMask" ? "MetaMask" : "Trust Wallet";
+
+    if (demoPreviewEnabled) {
+      const mock = target === "metaMask" ? "0xMetaDEMOc0ffee" : "0xTrustDEMOc0ffee";
+      setDemoWalletAddress(mock);
+      toast.success(`Connected to ${targetWalletName} (demo)`);
+      return;
+    }
+
     if (!isAuthenticated) {
       toast.error("Authorize first, then connect a wallet");
       return;
     }
-
-    const targetWalletName = target === "metaMask" ? "MetaMask" : "Trust Wallet";
 
     // Отключаем текущий кошелек полностью
     if (isWalletConnected) {
@@ -488,6 +501,12 @@ export default function App() {
   };
 
   const handleDisconnect = () => {
+    if (demoPreviewEnabled && !isConnected) {
+      setDemoWalletAddress(null);
+      toast.success("Demo wallet cleared");
+      return;
+    }
+    setDemoWalletAddress(null);
     disconnect();
     toast.success("Wallet disconnected");
   };
@@ -669,6 +688,10 @@ export default function App() {
   const toggleAutopilot = () => setClickerState(prev => ({ ...prev, autopilot: !prev.autopilot }));
 
   const ensureAuthed = (action: string) => {
+    if (demoPreviewEnabled) {
+      toast.success(`Preview: ${action} mocked`);
+      return true;
+    }
     if (!isAuthenticated) {
       toast.error("Authorize first (email or socials)");
       return false;
@@ -753,7 +776,7 @@ export default function App() {
   };
 
   const authOverlay =
-    !isAuthenticated || !isWalletConnected
+    !demoPreviewEnabled && (!isAuthenticated || !isWalletConnected)
       ? (
         <div className="auth-wall">
           <Lock size={20} />
@@ -832,6 +855,9 @@ export default function App() {
               <X size={16} />
             </button>
           </div>
+          <button className="cta-login" type="button" onClick={() => handleSocialAuth("Telegram", "login")}>
+            Quick login (demo-ready)
+          </button>
 
           <div className="modal-body">
             <div className="modal-grid">
@@ -1151,14 +1177,17 @@ export default function App() {
               key={item.key}
               className={`nav-item ${activePage === item.key ? 'active' : ''}`}
               onClick={() => {
-                if (!isAuthenticated && gatedPages.has(item.key)) {
+                if (!demoPreviewEnabled && !isAuthenticated && gatedPages.has(item.key)) {
                   toast.error("Login or register to open this page");
                   openAuthModal("login");
                   return;
                 }
-                if (!isWalletConnected && gatedPages.has(item.key)) {
+                if (!demoPreviewEnabled && !isWalletConnected && gatedPages.has(item.key)) {
                   toast.error("Connect a wallet after login to access this section");
                   return;
+                }
+                if (demoPreviewEnabled && gatedPages.has(item.key) && !isAuthenticated) {
+                  toast("Preview mode: auth skipped", { duration: 1800 });
                 }
                 setActivePage(item.key);
                 setSidebarOpen(false);
@@ -1232,50 +1261,49 @@ export default function App() {
           <div className="top-actions">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="session-bar tight">
-              {!isAuthenticated ? (
-                <>
-                  <div className="session-pair">
-                    <button className="btn-primary" onClick={() => openAuthModal("login")}>
-                      <LogIn size={14} />
-                      Login
+              {!isAuthenticated && (
+                <div className="session-pair">
+                  <button className="btn-primary" onClick={() => openAuthModal("login")}>
+                    <LogIn size={14} />
+                    Login
+                  </button>
+                  <button className="ghost" onClick={() => openAuthModal("register")}>
+                    <UserPlus size={14} />
+                    Register
+                  </button>
+                </div>
+              )}
+              <div className="wallet-stack">
+                {!isWalletConnected ? (
+                  <>
+                    <button
+                      className="btn-connect"
+                      onClick={() => handleConnect("metaMask")}
+                      disabled={isLoading && pendingConnector?.name === "MetaMask"}
+                    >
+                      Connect MetaMask
                     </button>
-                    <button className="ghost" onClick={() => openAuthModal("register")}>
-                      <UserPlus size={14} />
-                      Register
+                    <button
+                      className="btn-connect"
+                      onClick={() => handleConnect("trust")}
+                      disabled={isLoading && pendingConnector?.name === "Trust Wallet"}
+                    >
+                      Connect Trust Wallet
                     </button>
+                  </>
+                ) : (
+                  <div className="wallet-chip">
+                    <WalletMinimal size={16} />
+                    <div>
+                      <div className="wallet-label">Wallet ready</div>
+                      <div className="wallet-address">{walletLabel}</div>
+                    </div>
+                    <button className="ghost tiny" onClick={handleDisconnect}>Disconnect</button>
                   </div>
-                </>
-              ) : (
+                )}
+              </div>
+              {isAuthenticated && (
                 <>
-                  <div className="wallet-stack">
-                    {!isWalletConnected ? (
-                      <>
-                        <button
-                          className="btn-connect"
-                          onClick={() => handleConnect("metaMask")}
-                          disabled={isLoading && pendingConnector?.name === "MetaMask"}
-                        >
-                          Connect MetaMask
-                        </button>
-                        <button
-                          className="btn-connect"
-                          onClick={() => handleConnect("trust")}
-                          disabled={isLoading && pendingConnector?.name === "Trust Wallet"}
-                        >
-                          Connect Trust Wallet
-                        </button>
-                      </>
-                    ) : (
-                      <div className="wallet-chip">
-                        <WalletMinimal size={16} />
-                        <div>
-                          <div className="wallet-label">Wallet ready</div>
-                          <div className="wallet-address">{shortAddress(address)}</div>
-                        </div>
-                        <button className="ghost tiny" onClick={handleDisconnect}>Disconnect</button>
-                      </div>
-                    )}
-                  </div>
                   <button className="btn-signout" onClick={handleSocialLogout}>Sign out</button>
                   <button className="user-chip linky" type="button" onClick={() => setActivePage("profile")}>
                     <UserRound size={16} />
@@ -1291,7 +1319,7 @@ export default function App() {
         </header>
 
         <main className="page">
-          {gatedPages.has(activePage) && (!isAuthenticated || !isWalletConnected) && (
+          {gatedPages.has(activePage) && !demoPreviewEnabled && (!isAuthenticated || !isWalletConnected) && (
             <div className="page-guard">
               <div>
                 <div className="panel-title">Authorization required</div>
@@ -1962,7 +1990,7 @@ export default function App() {
                     <div className="preview-row CTA">
                       <div>
                         <div className="label">Wallet</div>
-                        <div className="value">{isOnchainReady ? shortAddress(address) : 'Connect to deploy'}</div>
+                        <div className="value">{isOnchainReady ? walletLabel : 'Connect to deploy'}</div>
                       </div>
                       <button
                         className="btn-primary ghosty"
@@ -2215,7 +2243,7 @@ export default function App() {
                     </div>
                     <div className="profile-row">
                       <span className="label">Wallet</span>
-                      <span className="value">{isWalletConnected ? shortAddress(address) : "Not connected"}</span>
+                      <span className="value">{isWalletConnected ? walletLabel : "Not connected"}</span>
                     </div>
                     <div className="profile-row">
                       <span className="label">Session strength</span>
@@ -2247,7 +2275,7 @@ export default function App() {
                     <div className="session-row">
                       <span className="label">Wallet</span>
                       <span className={`pill ${isWalletConnected ? 'pill-positive' : 'pill-negative'}`}>
-                        {isWalletConnected ? shortAddress(address) : 'Optional'}
+                        {isWalletConnected ? walletLabel : 'Optional'}
                       </span>
                     </div>
                     <div className="session-row">
@@ -2270,7 +2298,7 @@ export default function App() {
                           <button className="btn-connect alt" onClick={() => handleSocialAuth("X")}><XIcon size={14} />X</button>
                         </>
                       )}
-                      {isAuthenticated && !isWalletConnected && (
+                      {(isAuthenticated || demoPreviewEnabled) && !isWalletConnected && (
                         <>
                           <button className="btn-connect" onClick={() => handleConnect('metaMask')}>
                             MetaMask

@@ -500,6 +500,23 @@
   margin-bottom: 10px;
 }
 
+.cta-login {
+  width: 100%;
+  margin: 6px 0 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #ffb347, #ff8ba7, #7ae0ff);
+  color: #0a0c16;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 38px rgba(255, 179, 71, 0.35), 0 10px 30px rgba(122, 224, 255, 0.25);
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.cta-login:hover { transform: translateY(-1px); box-shadow: 0 20px 44px rgba(255, 179, 71, 0.45), 0 10px 30px rgba(122, 224, 255, 0.35); }
+.cta-login:active { transform: translateY(0); }
+
 .modal-headings { display: grid; gap: 6px; }
 .modal-badges { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
 
