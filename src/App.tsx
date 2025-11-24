@@ -133,6 +133,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsible, setIsSidebarCollapsible] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 1024px)").matches : false,
+  );
   const cursorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [rewards, setRewards] = useState<Reward[]>(mockRewards);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -193,6 +196,28 @@ export default function App() {
     };
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
+    const updateSidebarMode = (matches: boolean) => {
+      setIsSidebarCollapsible(matches);
+      if (!matches) {
+        setSidebarOpen(false);
+      }
+    };
+    const handleMediaChange = (event: MediaQueryListEvent) => {
+      updateSidebarMode(event.matches);
+    };
+
+    updateSidebarMode(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleMediaChange);
+      return () => mediaQuery.removeEventListener("change", handleMediaChange);
+    }
+    mediaQuery.addListener(handleMediaChange);
+    return () => mediaQuery.removeListener(handleMediaChange);
   }, []);
 
   useEffect(() => {
@@ -1113,9 +1138,11 @@ export default function App() {
               <div className="brand-subtitle">Launch your coin!</div>
             </div>
           </div>
-          <button className="icon-button ghost sidebar-close" onClick={() => setSidebarOpen(false)}>
-            <X size={16} />
-          </button>
+          {isSidebarCollapsible && (
+            <button className="icon-button ghost sidebar-close" onClick={() => setSidebarOpen(false)}>
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <nav className="nav">
@@ -1189,15 +1216,17 @@ export default function App() {
 
       <div className="content">
         <header className="topbar">
-          <button className="icon-button ghost burger" onClick={() => setSidebarOpen(true)}>
-            <Menu size={18} />
-          </button>
+          {isSidebarCollapsible && (
+            <button className="icon-button ghost burger" onClick={() => setSidebarOpen(true)}>
+              <Menu size={18} />
+            </button>
+          )}
           <div className="page-heading">
             <div className="page-title">
               {pageTitle}
               <span className="dot live" />
             </div>
-            <p className="page-subtitle">Authenticate first (email or socials), then connect a wallet.</p>
+
           </div>
 
           <div className="top-actions">
@@ -1549,7 +1578,7 @@ export default function App() {
                     <div className="panel-head">
                       <div>
                         <div className="panel-title">Equity curve</div>
-                        <p className="panel-subtitle">Mocked NAV feed refreshing in real time.</p>
+                        <p className="panel-subtitle">NAV feed refreshing in real time.</p>
                       </div>
                       <div className={`pill ${equityChange.absolute >= 0 ? 'pill-positive' : 'pill-negative'}`}>
                         {equityChange.absolute >= 0 ? '+' : '-'}
@@ -1611,7 +1640,7 @@ export default function App() {
                   <div className="panel secondary">
                     <div className="panel-head">
                       <div className="panel-title">Alpha / beta</div>
-                      <p className="panel-subtitle">Mocked strategy vs market correlation.</p>
+                      <p className="panel-subtitle">strategy vs market correlation.</p>
                     </div>
                     <div className="chart-meta">
                       <div className="chart-icon">
@@ -1669,7 +1698,7 @@ export default function App() {
                   <div className="panel secondary">
                     <div className="panel-head">
                       <div className="panel-title">Holdings map</div>
-                      <p className="panel-subtitle">Normalized positions from the mocked wallet.</p>
+                      <p className="panel-subtitle">Normalized positions from the wallet.</p>
                     </div>
                     <div className="chart" role="img" aria-label="Portfolio allocation donut">
                       <ResponsiveContainer width="100%" height={240}>
@@ -1687,6 +1716,7 @@ export default function App() {
                               [`${value.toFixed(1)}%`, entry?.payload?.symbol ?? name]
                             }
                             contentStyle={{ background: '#0c0f1b', border: '1px solid #7ae0ff', color: '#e8f2ff' }}
+                            itemStyle={{ color: '#e8f2ff' }}
                             labelStyle={{ color: '#e8f2ff' }}
                           />
                         </RadialBarChart>
@@ -1752,7 +1782,7 @@ export default function App() {
                       <div className="panel-title">PnL & drawdown</div>
                       <p className="panel-subtitle">Same feed, isolated to profit curve.</p>
                     </div>
-                    <div className="chart" role="img" aria-label="PnL area chart for the mocked wallet">
+                    <div className="chart" role="img" aria-label="PnL area chart for the wallet">
                       <ResponsiveContainer width="100%" height={220}>
                         <AreaChart data={portfolioHistory}>
                           <defs>
@@ -2078,7 +2108,7 @@ export default function App() {
             <motion.section {...cardAnim} className="panel">
               <div className="panel-head">
                 <div className="panel-title">Rewards</div>
-                <p className="panel-subtitle">Claimed state is mocked locally.</p>
+                <p className="panel-subtitle">Claimed state is locally.</p>
               </div>
               <div className="rewards">
                 {rewards.map(reward => (
@@ -2272,7 +2302,7 @@ export default function App() {
                 <div className="panel secondary">
                   <div className="panel-head">
                     <div className="panel-title">Recent sessions</div>
-                    <p className="panel-subtitle">Mocked devices and last activity for transparency.</p>
+                    <p className="panel-subtitle">devices and last activity for transparency.</p>
                   </div>
                   <div className="session-list">
                     {recentSessions.map(session => (
