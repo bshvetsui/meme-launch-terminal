@@ -136,6 +136,9 @@ export default function App() {
   const [isSidebarCollapsible, setIsSidebarCollapsible] = useState(
     typeof window !== "undefined" ? window.matchMedia("(max-width: 1024px)").matches : false,
   );
+  const [isMobileWidth, setIsMobileWidth] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 480px)").matches : false,
+  );
   const cursorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [rewards, setRewards] = useState<Reward[]>(mockRewards);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -188,14 +191,36 @@ export default function App() {
   const isAuthenticated = !!authSession;
   const isOnchainReady = isAuthenticated && isWalletConnected;
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const root = document.documentElement;
+
+    if (isMobileWidth) {
+      root.style.setProperty("--cursor-trail-visible", "0");
+      return;
+    }
+
+    root.style.setProperty("--cursor-trail-visible", "0.9");
     const handlePointerMove = (event: PointerEvent) => {
       cursorRef.current = { x: event.clientX, y: event.clientY };
-      const root = document.documentElement;
       root.style.setProperty("--cursor-x", `${event.clientX}px`);
       root.style.setProperty("--cursor-y", `${event.clientY}px`);
     };
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, [isMobileWidth]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mobileQuery = window.matchMedia("(max-width: 480px)");
+    const handleMobileChange = (event: MediaQueryListEvent) => setIsMobileWidth(event.matches);
+
+    setIsMobileWidth(mobileQuery.matches);
+    if (mobileQuery.addEventListener) {
+      mobileQuery.addEventListener("change", handleMobileChange);
+      return () => mobileQuery.removeEventListener("change", handleMobileChange);
+    }
+    mobileQuery.addListener(handleMobileChange);
+    return () => mobileQuery.removeListener(handleMobileChange);
   }, []);
 
   useEffect(() => {
@@ -730,11 +755,26 @@ export default function App() {
     [authSession, isAuthenticated],
   );
 
-  const cardAnim = {
-    initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.35, ease: [0.25, 0.8, 0.5, 1] as const },
-  };
+  const cardAnim = useMemo(
+    () =>
+      isMobileWidth
+        ? {
+            initial: { opacity: 1, y: 0 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0 },
+          }
+        : {
+            initial: { opacity: 0, y: 12 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.35, ease: [0.25, 0.8, 0.5, 1] as const },
+          },
+    [isMobileWidth],
+  );
+  const allowChartAnimation = !isMobileWidth;
+  const clickerMotionProps = useMemo(
+    () => (isMobileWidth ? {} : { whileTap: { scale: 0.97 }, whileHover: { scale: 1.01 } }),
+    [isMobileWidth],
+  );
 
   const toastBaseStyle = {
     background: "linear-gradient(120deg, rgba(122, 224, 255, 0.18), rgba(192, 139, 255, 0.14))",
@@ -1379,7 +1419,14 @@ export default function App() {
                             contentStyle={{ background: '#0c0f1b', border: '1px solid #7ae0ff', color: '#e8f2ff' }}
                             labelStyle={{ color: '#e8f2ff' }}
                           />
-                          <Area type="monotone" dataKey="price" stroke="#7ae0ff" fill="url(#chartYellow)" strokeWidth={2} />
+                          <Area
+                            type="monotone"
+                            dataKey="price"
+                            stroke="#7ae0ff"
+                            fill="url(#chartYellow)"
+                            strokeWidth={2}
+                            isAnimationActive={allowChartAnimation}
+                          />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -1628,8 +1675,17 @@ export default function App() {
                             stroke="#7ae0ff"
                             fill="url(#equityFill)"
                             strokeWidth={2.2}
+                            isAnimationActive={allowChartAnimation}
                           />
-                          <Line yAxisId="pnl" type="monotone" dataKey="pnl" stroke="#c08bff" strokeWidth={1.6} dot={false} />
+                          <Line
+                            yAxisId="pnl"
+                            type="monotone"
+                            dataKey="pnl"
+                            stroke="#c08bff"
+                            strokeWidth={1.6}
+                            dot={false}
+                            isAnimationActive={allowChartAnimation}
+                          />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -1674,8 +1730,23 @@ export default function App() {
                             contentStyle={{ background: '#0c0f1b', border: '1px solid #7df7c2', color: '#e8f2ff' }}
                             labelStyle={{ color: '#e8f2ff' }}
                           />
-                          <Line type="monotone" dataKey="alpha" stroke="#7df7c2" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="beta" stroke="#7ae0ff" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+                          <Line
+                            type="monotone"
+                            dataKey="alpha"
+                            stroke="#7df7c2"
+                            strokeWidth={2}
+                            dot={false}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="beta"
+                            stroke="#7ae0ff"
+                            strokeWidth={2}
+                            dot={false}
+                            strokeDasharray="5 5"
+                            isAnimationActive={allowChartAnimation}
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -1710,7 +1781,7 @@ export default function App() {
                           endAngle={-270}
                         >
                           <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                          <RadialBar background dataKey="value" cornerRadius={8} />
+                          <RadialBar background dataKey="value" cornerRadius={8} isAnimationActive={allowChartAnimation} />
                           <Tooltip
                             formatter={(value: number, name: string, entry: any) =>
                               [`${value.toFixed(1)}%`, entry?.payload?.symbol ?? name]
@@ -1751,8 +1822,22 @@ export default function App() {
                             contentStyle={{ background: '#0c0f1b', border: '1px solid #c08bff', color: '#e8f2ff' }}
                             labelStyle={{ color: '#e8f2ff' }}
                           />
-                          <Bar dataKey="inflow" name="Inflow" stackId="flows" fill="#7df7c2" radius={[8, 8, 0, 0]} />
-                          <Bar dataKey="outflow" name="Outflow" stackId="flows" fill="#ff8ba7" radius={[0, 0, 8, 8]} />
+                          <Bar
+                            dataKey="inflow"
+                            name="Inflow"
+                            stackId="flows"
+                            fill="#7df7c2"
+                            radius={[8, 8, 0, 0]}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                          <Bar
+                            dataKey="outflow"
+                            name="Outflow"
+                            stackId="flows"
+                            fill="#ff8ba7"
+                            radius={[0, 0, 8, 8]}
+                            isAnimationActive={allowChartAnimation}
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -1799,7 +1884,14 @@ export default function App() {
                             contentStyle={{ background: '#0c0f1b', border: '1px solid #c08bff', color: '#e8f2ff' }}
                             labelStyle={{ color: '#e8f2ff' }}
                           />
-                          <Area type="monotone" dataKey="pnl" stroke="#c08bff" fill="url(#pnlFill)" strokeWidth={2.2} />
+                          <Area
+                            type="monotone"
+                            dataKey="pnl"
+                            stroke="#c08bff"
+                            fill="url(#pnlFill)"
+                            strokeWidth={2.2}
+                            isAnimationActive={allowChartAnimation}
+                          />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -1998,9 +2090,8 @@ export default function App() {
                     <motion.button
                       type="button"
                       className="clicker-button"
-                      whileTap={{ scale: 0.97 }}
-                      whileHover={{ scale: 1.01 }}
                       onClick={handleClickerTap}
+                      {...clickerMotionProps}
                     >
                       <div className="clicker-button-mark">
                         <Sparkles size={18} />

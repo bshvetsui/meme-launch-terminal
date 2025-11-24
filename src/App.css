@@ -14,6 +14,7 @@
   --warning: var(--accent-2);
   --cursor-x: 50%;
   --cursor-y: 50%;
+  --cursor-trail-visible: 0.9;
 }
 
 .app-shell {
@@ -38,7 +39,7 @@
   background: radial-gradient(140px at var(--cursor-x) var(--cursor-y), rgba(122, 224, 255, 0.12), transparent 60%);
   mix-blend-mode: screen;
   transition: opacity 0.2s ease;
-  opacity: 0.9;
+  opacity: var(--cursor-trail-visible, 0.9);
   z-index: 0;
 }
 
@@ -52,13 +53,16 @@
   top: 0;
   height: 100vh;
   padding: 18px;
-  background: linear-gradient(180deg, linear-gradient(180deg, rgba(12, 16, 30, 0.92) 0%, rgba(10, 12, 22, 0.9) 100%) 100%);
+  background: linear-gradient(180deg, rgba(12, 16, 30, 0.94) 0%, rgba(10, 12, 22, 0.92) 100%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   z-index: 2;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
 }
 
 .sidebar-header {
@@ -225,6 +229,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
+  min-width: 0;
 }
 
 .btn-connect:hover:enabled { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(246, 195, 68, 0.3); }
@@ -232,7 +237,7 @@
 .btn-connect.alt { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); }
 .btn-connect.claimed { background: rgba(255, 255, 255, 0.05); color: var(--muted); }
 
-.ghost { background: none; border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.ghost { background: none; border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .ghost.tiny { padding: 6px 10px; font-size: 12px; }
 
 .icon-button {
@@ -342,6 +347,7 @@
   line-height: 1;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(122, 224, 255, 0.25);
+  min-width: 0;
 }
 .btn-primary.ghosty { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 6px; box-shadow: none; }
 
@@ -566,6 +572,10 @@
   .modal-grid { grid-template-columns: 1fr; }
   .modal-card, .toggle-row { padding: 10px; }
   .field input, .field select { padding: 9px 11px; }
+  .top-actions { justify-content: flex-start; gap: 12px; flex-wrap: wrap; }
+  .session-bar.tight { flex-wrap: wrap; white-space: normal; }
+  .session-pair { flex-wrap: wrap; }
+  .btn-primary, .btn-connect, .ghost { padding: 10px 14px; }
 }
 
 @media (max-width: 1024px) {
@@ -583,6 +593,9 @@
   .modal { width: min(680px, 100%); padding: 12px; max-height: 90vh; }
   .modal-body { gap: 10px; }
   .modal-grid { grid-template-columns: 1fr; gap: 10px; }
+  .session-bar.tight { width: 100%; flex-wrap: wrap; white-space: normal; row-gap: 8px; }
+  .session-pair { flex-wrap: wrap; }
+  .search-bar { max-width: 100%; }
 }
 
 @media (max-width: 768px) {
@@ -604,6 +617,13 @@
   .modal-grid { grid-template-columns: 1fr; gap: 10px; }
   .modal-card, .toggle-row { padding: 9px; }
   .modal-body { gap: 10px; }
+  .session-bar { gap: 8px; }
+  .session-bar.tight { width: 100%; }
+  .session-pair { width: 100%; }
+  .session-bar .btn-primary,
+  .session-bar .btn-connect,
+  .session-bar .ghost { width: 100%; justify-content: center; }
+  .search-bar { width: 100%; max-width: 100%; }
 }
 
 @media (max-width: 480px) {
@@ -620,6 +640,22 @@
   .chart-icon { justify-content: space-between; width: 100%; }
   .chart-legend { gap: 8px; }
   .legend-chip { width: 100%; justify-content: space-between; }
+  .btn-primary,
+  .btn-connect,
+  .ghost { padding: 10px 12px; font-size: 14px; }
+  .session-bar { gap: 8px; }
+  .session-bar button,
+  .session-bar .ghost,
+  .session-bar .btn-connect,
+  .session-bar .btn-primary,
+  .connect-group .btn-connect,
+  .connect-group .ghost,
+  .connect-group .btn-primary { width: 100%; justify-content: center; }
+  .search-bar { width: 100%; max-width: 100%; }
+  .icon-button { width: 32px; height: 32px; }
+  .app-shell { animation: none; }
+  .app-shell::after { opacity: 0; }
+  .ml-toast { animation: none; }
 }
 
 
