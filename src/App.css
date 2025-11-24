@@ -181,6 +181,12 @@
 .top-actions { display: flex; align-items: center; gap: 16px; justify-content: flex-end; width: 100%; }
 .session-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 .session-bar.tight { flex-wrap: nowrap; white-space: nowrap; gap: 10px; }
+.session-bar.relaxed { flex-wrap: wrap; white-space: normal; gap: 10px; justify-content: flex-start; width: 100%; }
+.session-bar.relaxed .session-pair,
+.session-bar.relaxed .wallet-stack,
+.session-bar.relaxed > button,
+.session-bar.relaxed > .user-chip,
+.session-bar.relaxed > .btn-signout { width: 100%; }
 .session-pair { display: inline-flex; gap: 10px; flex-wrap: nowrap; align-items: center; white-space: nowrap; }
 .wallet-stack { display: flex; align-items: center; gap: 10px; }
 
@@ -624,7 +630,16 @@
 }
 
 @media (max-width: 480px) {
-  .app-shell { background-size: 200% 200%; }
+  .app-shell { background-size: 200% 200%; animation: none; }
+  .app-shell::after { display: none; }
+  .nav-item, .btn-connect, .clicker-button, .icon-button { transition: none; }
+  .top-actions { gap: 10px; }
+  .session-bar.relaxed { gap: 8px; }
+  .session-bar.relaxed > * { width: 100%; }
+  .session-bar.relaxed .session-pair { flex-wrap: wrap; gap: 8px; }
+  .session-bar.relaxed .session-pair button { width: 100%; }
+  .wallet-chip { flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+  .wallet-chip .ghost.tiny { margin-left: auto; }
   .page { padding: 18px 16px; }
   .panel { padding: 14px; }
   .stat-value { font-size: 20px; }

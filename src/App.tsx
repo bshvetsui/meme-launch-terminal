@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { TokenTable } from "./components/TokenTable";
 import { SearchBar } from "./components/SearchBar";
 import {
@@ -104,16 +113,23 @@ const navItems: Array<{ key: PageKey; label: string; icon: ReactNode; badge?: st
 ];
 const gatedPages = new Set<PageKey>(["defi", "portfolio", "create"]);
 const AUTH_STORAGE_KEY = "ml-terminal-auth";
+const DEMO_PREVIEW_ENABLED = true;
 
-const usd = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value >= 1000 ? 0 : 2,
-  }).format(value);
+const usdWholeFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+const usdCentsFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
+const compactFormatter = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 
-const compact = (value: number) =>
-  new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+const usd = (value: number) => (value >= 1000 ? usdWholeFormatter : usdCentsFormatter).format(value);
+
+const compact = (value: number) => compactFormatter.format(value);
 
 const shortAddress = (value?: string) => (value ? `${value.slice(0, 4)}...${value.slice(-4)}` : "-");
 
@@ -128,33 +144,54 @@ const timeAgo = (timestamp: number) => {
   return `${days}d`;
 };
 
+const AUTH_FORM_DEFAULTS = {
+  email: "",
+  password: "",
+  username: "",
+  otp: "",
+  invite: "",
+  sessionLength: "24h",
+  remember: true,
+  enable2fa: false,
+  marketing: false,
+  acceptTerms: true,
+};
+
+const toastBaseStyle = {
+  background: "linear-gradient(120deg, rgba(122, 224, 255, 0.18), rgba(192, 139, 255, 0.14))",
+  border: "1px solid var(--border)",
+  color: "var(--text)",
+  fontWeight: 700,
+  fontSize: "14px",
+  letterSpacing: "-0.01em",
+  padding: "16px 18px",
+  borderRadius: "16px",
+  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(122, 224, 255, 0.3)",
+  backdropFilter: "blur(10px)",
+  minWidth: "320px",
+  maxWidth: "520px",
+  lineHeight: "1.5",
+};
+
 export default function App() {
-  const demoPreviewEnabled = true;
+  const demoPreviewEnabled = DEMO_PREVIEW_ENABLED;
   const [tokens, setTokens] = useState<Token[]>(mockTokens);
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsible, setIsSidebarCollapsible] = useState(
     typeof window !== "undefined" ? window.matchMedia("(max-width: 1024px)").matches : false,
+  );
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 480px)").matches : false,
   );
   const cursorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [rewards, setRewards] = useState<Reward[]>(mockRewards);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [authModal, setAuthModal] = useState<AuthMode | null>(null);
-  const authFormDefaults = {
-    email: "",
-    password: "",
-    username: "",
-    otp: "",
-    invite: "",
-    sessionLength: "24h",
-    remember: true,
-    enable2fa: false,
-    marketing: false,
-    acceptTerms: true,
-  };
-  const [authForm, setAuthForm] = useState(authFormDefaults);
+  const [authForm, setAuthForm] = useState(AUTH_FORM_DEFAULTS);
   const [otpRequested, setOtpRequested] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [newsPosts] = useState<NewsPost[]>(mockNewsPosts);
@@ -193,16 +230,41 @@ export default function App() {
   const isOnchainReady = authReady && walletReady;
   const displayWalletAddress = shortAddress(demoWalletAddress ?? address);
   const walletLabel = displayWalletAddress === "-" ? "Demo wallet" : displayWalletAddress;
+
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 480px)");
+    const handleMediaChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
+
+    setIsMobile(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleMediaChange);
+      return () => mediaQuery.removeEventListener("change", handleMediaChange);
+    }
+    mediaQuery.addListener(handleMediaChange);
+    return () => mediaQuery.removeListener(handleMediaChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return;
+    const root = document.documentElement;
+    let frame = 0;
     const handlePointerMove = (event: PointerEvent) => {
-      cursorRef.current = { x: event.clientX, y: event.clientY };
-      const root = document.documentElement;
-      root.style.setProperty("--cursor-x", `${event.clientX}px`);
-      root.style.setProperty("--cursor-y", `${event.clientY}px`);
+      if (frame) return;
+      const { clientX, clientY } = event;
+      frame = window.requestAnimationFrame(() => {
+        cursorRef.current = { x: clientX, y: clientY };
+        root.style.setProperty("--cursor-x", `${clientX}px`);
+        root.style.setProperty("--cursor-y", `${clientY}px`);
+        frame = 0;
+      });
     };
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, []);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -350,15 +412,15 @@ export default function App() {
   }, [authForm]);
 
   const filteredTokens = useMemo(() => {
-    if (!searchQuery) return tokens;
-    const query = searchQuery.toLowerCase();
+    if (!deferredSearchQuery) return tokens;
+    const query = deferredSearchQuery.toLowerCase();
     return tokens.filter(
       token =>
         token.name?.toLowerCase().includes(query) ||
         token.symbol?.toLowerCase().includes(query) ||
         token.token?.toLowerCase().includes(query),
     );
-  }, [tokens, searchQuery]);
+  }, [tokens, deferredSearchQuery]);
 
   const totalMarketCap = useMemo(() => tokens.reduce((sum, token) => sum + (token.marketCap ?? 0), 0), [tokens]);
   const totalVolume = useMemo(() => tokens.reduce((sum, token) => sum + (token.volume24h ?? 0), 0), [tokens]);
@@ -397,12 +459,13 @@ export default function App() {
     [flowSeries],
   );
 
-  const handleConnect = async (target: "metaMask" | "trust") => {
-    const targetWalletName = target === "metaMask" ? "MetaMask" : "Trust Wallet";
+  const handleConnect = useCallback(
+    async (target: "metaMask" | "trust") => {
+      const targetWalletName = target === "metaMask" ? "MetaMask" : "Trust Wallet";
 
-    if (demoPreviewEnabled) {
-      const mock = target === "metaMask" ? "0xMetaDEMOc0ffee" : "0xTrustDEMOc0ffee";
-      setDemoWalletAddress(mock);
+      if (demoPreviewEnabled) {
+        const mock = target === "metaMask" ? "0xMetaDEMOc0ffee" : "0xTrustDEMOc0ffee";
+        setDemoWalletAddress(mock);
       toast.success(`Connected to ${targetWalletName} (demo)`);
       return;
     }
@@ -497,10 +560,11 @@ export default function App() {
       } else {
         toast.error(error?.message || `Failed to connect to ${targetWalletName}`);
       }
-    }
-  };
+    },
+    [connectAsync, connectors, demoPreviewEnabled, disconnect, isAuthenticated, isWalletConnected],
+  );
 
-  const handleDisconnect = () => {
+  const handleDisconnect = useCallback(() => {
     if (demoPreviewEnabled && !isConnected) {
       setDemoWalletAddress(null);
       toast.success("Demo wallet cleared");
@@ -509,31 +573,34 @@ export default function App() {
     setDemoWalletAddress(null);
     disconnect();
     toast.success("Wallet disconnected");
-  };
+  }, [demoPreviewEnabled, disconnect, isConnected]);
 
-  const openAuthModal = (mode: AuthMode) => {
+  const openAuthModal = useCallback((mode: AuthMode) => {
     setAuthModal(mode);
     setAuthError(null);
     setOtpRequested(false);
-  };
+  }, []);
 
-  const closeAuthModal = () => {
+  const closeAuthModal = useCallback(() => {
     setAuthModal(null);
     setAuthError(null);
     setOtpRequested(false);
-    setAuthForm(authFormDefaults);
-  };
+    setAuthForm(AUTH_FORM_DEFAULTS);
+  }, []);
 
-  const handleSocialAuth = (provider: SocialProvider, mode: AuthMode = "login") => {
-    setAuthError(null);
-    setAuthSession({ provider, identifier: provider, mode });
-    toast.success(mode === "login" ? `Signed in via ${provider}` : `Registered via ${provider}`);
-    closeAuthModal();
-  };
+  const handleSocialAuth = useCallback(
+    (provider: SocialProvider, mode: AuthMode = "login") => {
+      setAuthError(null);
+      setAuthSession({ provider, identifier: provider, mode });
+      toast.success(mode === "login" ? `Signed in via ${provider}` : `Registered via ${provider}`);
+      closeAuthModal();
+    },
+    [closeAuthModal],
+  );
 
   const handleSocialLogout = () => {
     setAuthSession(null);
-    setAuthForm(authFormDefaults);
+    setAuthForm(AUTH_FORM_DEFAULTS);
     setOtpRequested(false);
     if (isWalletConnected) disconnect();
     toast("Signed out of session");
@@ -753,84 +820,80 @@ export default function App() {
     [authSession, isAuthenticated],
   );
 
-  const cardAnim = {
-    initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.35, ease: [0.25, 0.8, 0.5, 1] as const },
-  };
+  const motionEnabled = !isMobile;
 
-  const toastBaseStyle = {
-    background: "linear-gradient(120deg, rgba(122, 224, 255, 0.18), rgba(192, 139, 255, 0.14))",
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-    fontWeight: 700,
-    fontSize: "14px",
-    letterSpacing: "-0.01em",
-    padding: "16px 18px",
-    borderRadius: "16px",
-    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(122, 224, 255, 0.3)",
-    backdropFilter: "blur(10px)",
-    minWidth: "320px",
-    maxWidth: "520px",
-    lineHeight: "1.5",
-  };
+  const cardAnim = useMemo(
+    () =>
+      motionEnabled
+        ? {
+            initial: { opacity: 0, y: 12 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.35, ease: [0.25, 0.8, 0.5, 1] as const },
+          }
+        : {
+            initial: { opacity: 1, y: 0 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0 },
+          },
+    [motionEnabled],
+  );
 
-  const authOverlay =
-    !demoPreviewEnabled && (!isAuthenticated || !isWalletConnected)
-      ? (
-        <div className="auth-wall">
-          <Lock size={20} />
-          <p>
-            {!isAuthenticated
-              ? "Sign in with email or socials before touching wallets."
-              : "Now connect a wallet to interact onchain."}
-          </p>
-          <div className="connect-group wall">
-            {!isAuthenticated ? (
-              <>
-                <button className="btn-primary" onClick={() => openAuthModal("login")}>
-                  <LogIn size={14} />
-                  Login
-                </button>
-                <button className="ghost" onClick={() => openAuthModal("register")}>
-                  <UserPlus size={14} />
-                  Register
-                </button>
-                <button className="btn-connect alt" onClick={() => handleSocialAuth("Telegram", "login")}>
-                  <Send size={14} />
-                  Telegram
-                </button>
-                <button className="btn-connect alt" onClick={() => handleSocialAuth("Discord", "login")}>
-                  <DiscordIcon size={14} />
-                  Discord
-                </button>
-                <button className="btn-connect alt" onClick={() => handleSocialAuth("X", "login")}>
-                  <XIcon size={14} />
-                  X
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn-connect"
-                  onClick={() => handleConnect("metaMask")}
-                  disabled={isLoading && pendingConnector?.name === "MetaMask"}
-                >
-                  MetaMask
-                </button>
-                <button
-                  className="btn-connect"
-                  onClick={() => handleConnect("trust")}
-                  disabled={isLoading && pendingConnector?.name === "Trust Wallet"}
-                >
-                  Trust Wallet
-                </button>
-              </>
-            )}
-          </div>
+  const authOverlay = useMemo(() => {
+    if (demoPreviewEnabled || (isAuthenticated && isWalletConnected)) return null;
+    return (
+      <div className="auth-wall">
+        <Lock size={20} />
+        <p>
+          {!isAuthenticated
+            ? "Sign in with email or socials before touching wallets."
+            : "Now connect a wallet to interact onchain."}
+        </p>
+        <div className="connect-group wall">
+          {!isAuthenticated ? (
+            <>
+              <button className="btn-primary" onClick={() => openAuthModal("login")}>
+                <LogIn size={14} />
+                Login
+              </button>
+              <button className="ghost" onClick={() => openAuthModal("register")}>
+                <UserPlus size={14} />
+                Register
+              </button>
+              <button className="btn-connect alt" onClick={() => handleSocialAuth("Telegram", "login")}>
+                <Send size={14} />
+                Telegram
+              </button>
+              <button className="btn-connect alt" onClick={() => handleSocialAuth("Discord", "login")}>
+                <DiscordIcon size={14} />
+                Discord
+              </button>
+              <button className="btn-connect alt" onClick={() => handleSocialAuth("X", "login")}>
+                <XIcon size={14} />
+                X
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="btn-connect"
+                onClick={() => handleConnect("metaMask")}
+                disabled={isLoading && pendingConnector?.name === "MetaMask"}
+              >
+                MetaMask
+              </button>
+              <button
+                className="btn-connect"
+                onClick={() => handleConnect("trust")}
+                disabled={isLoading && pendingConnector?.name === "Trust Wallet"}
+              >
+                Trust Wallet
+              </button>
+            </>
+          )}
         </div>
-      )
-      : null;
+      </div>
+    );
+  }, [demoPreviewEnabled, handleConnect, handleSocialAuth, isAuthenticated, isLoading, isWalletConnected, openAuthModal, pendingConnector]);
 
   const renderAuthModal = () => {
     if (!authModal) return null;
@@ -1260,50 +1323,51 @@ export default function App() {
 
           <div className="top-actions">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
-            <div className="session-bar tight">
-              {!isAuthenticated && (
-                <div className="session-pair">
-                  <button className="btn-primary" onClick={() => openAuthModal("login")}>
-                    <LogIn size={14} />
-                    Login
-                  </button>
-                  <button className="ghost" onClick={() => openAuthModal("register")}>
-                    <UserPlus size={14} />
-                    Register
-                  </button>
-                </div>
-              )}
-              <div className="wallet-stack">
-                {!isWalletConnected ? (
-                  <>
-                    <button
-                      className="btn-connect"
-                      onClick={() => handleConnect("metaMask")}
-                      disabled={isLoading && pendingConnector?.name === "MetaMask"}
-                    >
-                      Connect MetaMask
-                    </button>
-                    <button
-                      className="btn-connect"
-                      onClick={() => handleConnect("trust")}
-                      disabled={isLoading && pendingConnector?.name === "Trust Wallet"}
-                    >
-                      Connect Trust Wallet
-                    </button>
-                  </>
-                ) : (
-                  <div className="wallet-chip">
-                    <WalletMinimal size={16} />
-                    <div>
-                      <div className="wallet-label">Wallet ready</div>
-                      <div className="wallet-address">{walletLabel}</div>
-                    </div>
-                    <button className="ghost tiny" onClick={handleDisconnect}>Disconnect</button>
-                  </div>
-                )}
-              </div>
-              {isAuthenticated && (
+            <div className={`session-bar ${isSidebarCollapsible ? "relaxed" : "tight"}`}>
+              {!isAuthenticated ? (
                 <>
+                  <div className="session-pair">
+                    <button className="btn-primary" onClick={() => openAuthModal("login")}>
+                      <LogIn size={14} />
+                      Login
+                    </button>
+                    <button className="ghost" onClick={() => openAuthModal("register")}>
+                      <UserPlus size={14} />
+                      Register
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="wallet-stack">
+                    {!isWalletConnected ? (
+                      <>
+                        <button
+                          className="btn-connect"
+                          onClick={() => handleConnect("metaMask")}
+                          disabled={isLoading && pendingConnector?.name === "MetaMask"}
+                        >
+                          Connect MetaMask
+                        </button>
+                        <button
+                          className="btn-connect"
+                          onClick={() => handleConnect("trust")}
+                          disabled={isLoading && pendingConnector?.name === "Trust Wallet"}
+                        >
+                          Connect Trust Wallet
+                        </button>
+                      </>
+                    ) : (
+                      <div className="wallet-chip">
+                        <WalletMinimal size={16} />
+                        <div>
+                          <div className="wallet-label">Wallet ready</div>
+                          <div className="wallet-address">{walletLabel}</div>
+                        </div>
+                        <button className="ghost tiny" onClick={handleDisconnect}>Disconnect</button>
+                      </div>
+                    )}
+                  </div>
                   <button className="btn-signout" onClick={handleSocialLogout}>Sign out</button>
                   <button className="user-chip linky" type="button" onClick={() => setActivePage("profile")}>
                     <UserRound size={16} />
