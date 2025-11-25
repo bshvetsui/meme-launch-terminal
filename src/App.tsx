@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useDeferredValue, type FormEvent, type ReactNode } from "react";
 import { TokenTable } from "./components/TokenTable";
 import { SearchBar } from "./components/SearchBar";
 import {
@@ -132,12 +132,26 @@ const timeAgo = (timestamp: number) => {
 export default function App() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
-  const [isLiveTokens, setIsLiveTokens] = useState(false);
   const [tokensPage, setTokensPage] = useState(1);
   const TOKENS_PAGE_SIZE = 20;
   const MAX_TOKENS = 300;
   const tokenUpdateQueue = useRef<Token[]>([]);
   const tokenFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [createdTokens, setCreatedTokens] = useState<Token[]>([]);
+  const [tokensLoaded, setTokensLoaded] = useState(false);
+  const [chartsLive, setChartsLive] = useState(false);
+  type PortfolioEntry = { token: string; balance: number; value: number; pnl: number; pnlPercentage: number };
+  const createdTokensPortfolio = useMemo<PortfolioEntry[]>(
+    () =>
+      createdTokens.map(token => ({
+        token: token.token,
+        balance: token.supply,
+        value: token.marketCap ?? 0,
+        pnl: 0,
+        pnlPercentage: 0,
+      })),
+    [createdTokens],
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -147,7 +161,6 @@ export default function App() {
   const [isMobileWidth, setIsMobileWidth] = useState(
     typeof window !== "undefined" ? window.matchMedia("(max-width: 480px)").matches : false,
   );
-  const cursorRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [rewards, setRewards] = useState<Reward[]>(mockRewards);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
@@ -200,23 +213,14 @@ export default function App() {
   const isAuthenticated = !!authSession;
   const isOnchainReady = isAuthenticated && isWalletConnected;
   useEffect(() => {
+    // Cursor trail off for performance
     if (typeof window === "undefined") return;
     const root = document.documentElement;
-
-    if (isMobileWidth) {
+    root.style.setProperty("--cursor-trail-visible", "0");
+    return () => {
       root.style.setProperty("--cursor-trail-visible", "0");
-      return;
-    }
-
-    root.style.setProperty("--cursor-trail-visible", "0.9");
-    const handlePointerMove = (event: PointerEvent) => {
-      cursorRef.current = { x: event.clientX, y: event.clientY };
-      root.style.setProperty("--cursor-x", `${event.clientX}px`);
-      root.style.setProperty("--cursor-y", `${event.clientY}px`);
     };
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [isMobileWidth]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -252,56 +256,56 @@ export default function App() {
     }
     mediaQuery.addListener(handleMediaChange);
     return () => mediaQuery.removeListener(handleMediaChange);
-  }, []);
+    }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadTokens = async () => {
+    const loadAllTokens = async () => {
       setTokensLoading(true);
       try {
-        const apiTokens = await tokenApi.getTokens("1");
-        if (!cancelled && apiTokens.length > 0) {
-          setTokens(apiTokens);
-          setIsLiveTokens(true);
+        const collected: Token[] = [];
+        for (let page = 1; page <= 10; page++) {
+          const pageTokens = await tokenApi.getTokens(String(page));
+          if (cancelled) return;
+          collected.push(...pageTokens);
+          if (!pageTokens.length) break;
+        }
+        if (!cancelled && collected.length) {
+          const unique = Array.from(new Map(collected.map(t => [t.token, t])).values());
+          unique.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+          setTokens(unique.slice(0, MAX_TOKENS));
         }
       } catch (error) {
         console.error("Failed to load tokens", error);
       } finally {
         if (!cancelled) {
           setTokensLoading(false);
+          setTokensLoaded(true);
         }
       }
     };
 
-    loadTokens();
+    loadAllTokens();
     return () => {
       cancelled = true;
     };
   }, []);
 
   useEffect(() => {
+    if (!tokensLoaded) return;
     wsManager.connect();
 
     const handleMint = (payload: any) => {
       const incoming = normalizeApiToken(payload);
       if (!incoming.token) return;
-      setTokens(prev => {
-        const next = [incoming, ...prev.filter(token => token.token !== incoming.token)];
-        return next;
-      });
+      enqueueTokenUpdate(incoming);
     };
 
     const handleUpdate = (payload: any) => {
       const incoming = normalizeApiToken(payload);
       if (!incoming.token) return;
-      setTokens(prev => {
-        const exists = prev.some(token => token.token === incoming.token);
-        if (!exists) {
-          return [incoming, ...prev];
-        }
-        return prev.map(token => (token.token === incoming.token ? { ...token, ...incoming } : token));
-      });
+      enqueueTokenUpdate(incoming);
     };
 
     wsManager.subscribe("mintTokens");
@@ -314,9 +318,11 @@ export default function App() {
       wsManager.off("tokenUpdates", handleUpdate);
       wsManager.disconnect();
     };
-  }, []);
+  }, [tokensLoaded]);
 
   useEffect(() => {
+    if (activePage !== "portfolio" || !chartsLive) return;
+
     const interval = setInterval(() => {
       setPortfolioHistory(prev => {
         const last = prev[prev.length - 1] ?? {
@@ -376,10 +382,10 @@ export default function App() {
         const next = Math.min(96, Math.max(48, prev + drift));
         return Number(next.toFixed(1));
       });
-    }, 5200);
+    }, 15000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [activePage, chartsLive]);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(AUTH_STORAGE_KEY) : null;
@@ -423,20 +429,22 @@ export default function App() {
     return Math.min(score, 100);
   }, [authForm]);
 
+  const deferredTokens = useDeferredValue(tokens);
+
   const filteredTokens = useMemo(() => {
-    if (!searchQuery) return tokens;
+    if (!searchQuery) return deferredTokens;
     const query = searchQuery.toLowerCase();
-    return tokens.filter(
+    return deferredTokens.filter(
       token =>
         token.name?.toLowerCase().includes(query) ||
         token.symbol?.toLowerCase().includes(query) ||
         token.token?.toLowerCase().includes(query),
     );
-  }, [tokens, searchQuery]);
+  }, [deferredTokens, searchQuery]);
 
   useEffect(() => {
     setTokensPage(1);
-  }, [searchQuery, tokens]);
+  }, [searchQuery]);
 
   const totalTokenPages = useMemo(
     () => Math.max(1, Math.ceil(filteredTokens.length / TOKENS_PAGE_SIZE)),
@@ -445,11 +453,38 @@ export default function App() {
   const paginatedTokens = useMemo(() => {
     const start = (tokensPage - 1) * TOKENS_PAGE_SIZE;
     return filteredTokens.slice(start, start + TOKENS_PAGE_SIZE);
-  }, [filteredTokens, tokensPage, TOKENS_PAGE_SIZE]);
+  }, [filteredTokens, tokensPage]);
+
+  // Reduce renders when there is no visible change
+  const stablePaginatedTokens = useMemo(() => paginatedTokens, [paginatedTokens]);
 
   useEffect(() => {
     setTokensPage(page => Math.min(page, totalTokenPages));
   }, [totalTokenPages]);
+
+  const flushTokenQueue = () => {
+    if (!tokenUpdateQueue.current.length) return;
+    setTokens(prev => {
+      const map = new Map<string, Token>();
+      // start from current
+      prev.forEach(t => map.set(t.token, t));
+      // apply queued updates (newest wins)
+      tokenUpdateQueue.current.forEach(t => map.set(t.token, { ...map.get(t.token), ...t }));
+      const merged = Array.from(map.values())
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+        .slice(0, MAX_TOKENS);
+      return merged;
+    });
+    tokenUpdateQueue.current = [];
+    tokenFlushTimer.current = null;
+  };
+
+  const enqueueTokenUpdate = (token: Token) => {
+    tokenUpdateQueue.current.push(token);
+    if (!tokenFlushTimer.current) {
+      tokenFlushTimer.current = setTimeout(flushTokenQueue, 1500);
+    }
+  };
 
   const totalMarketCap = useMemo(() => tokens.reduce((sum, token) => sum + (token.marketCap ?? 0), 0), [tokens]);
   const totalVolume = useMemo(() => tokens.reduce((sum, token) => sum + (token.volume24h ?? 0), 0), [tokens]);
@@ -721,8 +756,8 @@ export default function App() {
           sells: 0,
         } as Token);
 
-      setTokens(prev => [newToken, ...prev.filter(token => token.token !== newToken.token)]);
-      setIsLiveTokens(true);
+      enqueueTokenUpdate(newToken);
+      setCreatedTokens(prev => [newToken, ...prev.filter(token => token.token !== newToken.token)]);
       toast.success(created ? "Token created and added to the feed" : "Token saved locally (API fallback)");
     } catch (error) {
       console.error("Create token error", error);
@@ -889,7 +924,7 @@ export default function App() {
           },
     [isMobileWidth],
   );
-  const allowChartAnimation = !isMobileWidth;
+  const allowChartAnimation = false;
   const clickerMotionProps = useMemo(
     () => (isMobileWidth ? {} : { whileTap: { scale: 0.97 }, whileHover: { scale: 1.01 } }),
     [isMobileWidth],
@@ -1591,6 +1626,7 @@ export default function App() {
                       <p className="panel-subtitle">Auto-refresh every 8s</p>
                     </div>
                     <div className="panel-actions">
+                      {createdTokens.length > 0 && <span className="pill pill-live">My tokens</span>}
                       <div className="pager">
                         <button
                           className="ghost tiny"
@@ -1612,7 +1648,12 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                  <TokenTable tokens={paginatedTokens} loading={tokensLoading} />
+                  {createdTokens.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <TokenTable tokens={createdTokens} loading={false} />
+                    </div>
+                  )}
+                  <TokenTable tokens={stablePaginatedTokens} loading={tokensLoading} />
                 </div>
               </motion.div>
             </>
@@ -1684,9 +1725,10 @@ export default function App() {
                   <div className="panel">
                     <div className="panel-head">
                       <div>
-                        <div className="panel-title">Portfolio performance</div>
-                        <p className="panel-subtitle">Aggregated balances from mock wallet.</p>
-                      </div>
+                      <div className="panel-title">Portfolio performance</div>
+                      <p className="panel-subtitle">Aggregated balances from mock wallet.</p>
+                      
+                    </div>
                       <div className={`pill ${mockPortfolio.totalPnl >= 0 ? 'pill-positive' : 'pill-negative'}`}>
                         {mockPortfolio.totalPnl >= 0 ? '+' : ''}
                         {usd(mockPortfolio.totalPnl)} PnL
@@ -1709,11 +1751,11 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="portfolio-list">
-                      {mockPortfolio.tokens.map(token => (
-                        <div key={token.token} className="portfolio-row">
-                          <div>
-                            <div className="label">{token.token}</div>
+                      <div className="portfolio-list">
+                        {mockPortfolio.tokens.map(token => (
+                          <div key={token.token} className="portfolio-row">
+                            <div>
+                              <div className="label">{token.token}</div>
                             <div className="value">{compact(token.balance)} units</div>
                           </div>
                           <div className="value">{usd(token.value)}</div>
@@ -1722,10 +1764,20 @@ export default function App() {
                             {token.pnlPercentage}%
                           </div>
                         </div>
-                      ))}
+                        ))}
+                        {createdTokensPortfolio.map(token => (
+                          <div key={token.token} className="portfolio-row">
+                            <div>
+                              <div className="label">{token.token}</div>
+                              <div className="value">{compact(token.balance)} units</div>
+                            </div>
+                            <div className="value">{usd(token.value)}</div>
+                            <div className="pill pill-positive">+0%</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
 
                 <motion.div {...cardAnim}>
                   <div className="panel secondary">
@@ -1836,6 +1888,9 @@ export default function App() {
                     <div className="panel-head">
                       <div className="panel-title">Alpha / beta</div>
                       <p className="panel-subtitle">strategy vs market correlation.</p>
+                      <button className="ghost tiny" onClick={() => setChartsLive(prev => !prev)}>
+                        {chartsLive ? "Pause charts" : "Resume charts"}
+                      </button>
                     </div>
                     <div className="chart-meta">
                       <div className="chart-icon">
