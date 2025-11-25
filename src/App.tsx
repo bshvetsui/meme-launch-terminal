@@ -18,6 +18,8 @@ import {
 import type { Token, Reward, NewsPost } from "./types";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Toaster, toast } from "react-hot-toast";
+import { tokenApi, normalizeApiToken } from "./services/api";
+import { wsManager } from "./services/websocket";
 import {
   Menu,
   WalletMinimal,
@@ -130,6 +132,7 @@ const timeAgo = (timestamp: number) => {
 
 export default function App() {
   const [tokens, setTokens] = useState<Token[]>(mockTokens);
+  const [tokensLoading, setTokensLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -243,6 +246,64 @@ export default function App() {
     }
     mediaQuery.addListener(handleMediaChange);
     return () => mediaQuery.removeListener(handleMediaChange);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTokens = async () => {
+      setTokensLoading(true);
+      try {
+        const apiTokens = await tokenApi.getTokens("1");
+        if (!cancelled && apiTokens.length >= 10) {
+          setTokens(apiTokens);
+        }
+      } catch (error) {
+        console.error("Failed to load tokens", error);
+      } finally {
+        if (!cancelled) {
+          setTokensLoading(false);
+        }
+      }
+    };
+
+    loadTokens();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const MAX_TOKENS = 120;
+    wsManager.connect();
+
+    const handleMint = (payload: any) => {
+      const incoming = normalizeApiToken(payload);
+      if (!incoming.token) return;
+      setTokens(prev => {
+        const next = [incoming, ...prev.filter(token => token.token !== incoming.token)];
+        return next.slice(0, MAX_TOKENS);
+      });
+    };
+
+    const handleUpdate = (payload: any) => {
+      const incoming = normalizeApiToken(payload);
+      if (!incoming.token) return;
+      setTokens(prev =>
+        prev.map(token => (token.token === incoming.token ? { ...token, ...incoming } : token)),
+      );
+    };
+
+    wsManager.subscribe("mintTokens");
+    wsManager.subscribe("tokenUpdates");
+    wsManager.on("mintTokens", handleMint);
+    wsManager.on("tokenUpdates", handleUpdate);
+
+    return () => {
+      wsManager.off("mintTokens", handleMint);
+      wsManager.off("tokenUpdates", handleUpdate);
+      wsManager.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -1473,7 +1534,7 @@ export default function App() {
                     </div>
                    
                   </div>
-                  <TokenTable tokens={filteredTokens} loading={false} />
+                  <TokenTable tokens={filteredTokens} loading={tokensLoading} />
                 </div>
               </motion.div>
             </>

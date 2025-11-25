@@ -2,7 +2,10 @@
 import { Centrifuge, Subscription } from 'centrifuge';
 
 const WS_URL = 'wss://launch.meme/connection/websocket';
-const WS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJpYXQiOjE3NTcxNjY4ODh9.VEvlNmvIFS3ARM5R0jlNN4fwDDRz94WnKv8LDmtipNE';
+// Token extracted from the latest live frontend bundle (projectConfig.websocketToken)
+const WS_TOKEN =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3d3ciLCJpYXQiOjE3NDc5MDU4MTF9.Dgx3msdlTcunO_a61TkhK1957cDqPtY6ODyVDOknHZw';
+const WS_PREFIX = 'pumpfun';
 
 class WebSocketManager {
   private centrifuge: Centrifuge | null = null;
@@ -48,13 +51,17 @@ class WebSocketManager {
   }
 
   private subscribeToChannel(channel: string) {
-    if (!this.centrifuge || this.subscriptions.has(channel)) return;
+    if (!this.centrifuge) return;
+
+    const channelName = WS_PREFIX ? `${WS_PREFIX}-${channel}` : channel;
+    if (this.subscriptions.has(channelName)) return;
 
     try {
-      const subscription = this.centrifuge.newSubscription(channel);
+      const subscription = this.centrifuge.newSubscription(channelName);
 
-      subscription.on('publication', (ctx) => {
+      subscription.on('publication', ctx => {
         this.emit(channel, ctx.data);
+        this.emit(channelName, ctx.data);
 
         // Also emit specific events based on data type
         if (ctx.data.type === 'price') {
@@ -67,10 +74,14 @@ class WebSocketManager {
       });
 
       subscription.subscribe();
-      this.subscriptions.set(channel, subscription);
+      this.subscriptions.set(channelName, subscription);
     } catch (error) {
-      console.error(`Failed to subscribe to ${channel}:`, error);
+      console.error(`Failed to subscribe to ${channelName}:`, error);
     }
+  }
+
+  subscribe(channel: string) {
+    this.subscribeToChannel(channel);
   }
 
   subscribeToToken(tokenAddress: string) {

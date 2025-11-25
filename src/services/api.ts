@@ -11,27 +11,70 @@ const api = axios.create({
   },
 });
 
+export const normalizeApiToken = (raw: any): Token => {
+  const progress = Number(raw?.progress ?? 0);
+  const createdAtSource = raw?.mint_time ?? raw?.createdAt;
+  const parsedCreatedAt = createdAtSource ? Number(createdAtSource) || Date.parse(createdAtSource) : Date.now();
+
+  return {
+    token: raw?.token ?? raw?.address ?? '',
+    name: raw?.name ?? '',
+    symbol: raw?.symbol ?? '',
+    description: raw?.description,
+    decimals: raw?.decimals ?? 9,
+    supply: raw?.supply ?? 0,
+    photo: raw?.photo ?? raw?.image ?? raw?.avatar,
+    metadataUri: raw?.metadataUri,
+    hardcap: raw?.hardcapUsd ?? raw?.hardcap ?? 1,
+    website: raw?.website,
+    x: raw?.x,
+    telegram: raw?.telegram,
+    version: raw?.version,
+    price: Number(raw?.priceUsd ?? raw?.price ?? 0),
+    priceChange24h: Number(raw?.priceChange24h ?? raw?.priceChange ?? 0),
+    volume24h: Number(raw?.volumeUsd ?? raw?.volume24h ?? 0),
+    marketCap: Number(raw?.marketCapUsd ?? raw?.marketCap ?? 0),
+    holders: Number(raw?.holders ?? 0),
+    liquidity: Number(raw?.liquidity ?? 0),
+    createdAt: Number.isFinite(parsedCreatedAt) ? parsedCreatedAt : Date.now(),
+    creator: raw?.creator,
+    raised: progress,
+    trades: Number(raw?.trades ?? (raw?.buys ?? 0) + (raw?.sells ?? 0)),
+    buys: Number(raw?.buys ?? 0),
+    sells: Number(raw?.sells ?? 0),
+  };
+};
+
+const parseTokensResponse = (data: any): Token[] => {
+  const tokensObject = data?.tokens ?? data;
+  const list = Array.isArray(tokensObject) ? tokensObject : Object.values(tokensObject ?? {});
+  return list.map(normalizeApiToken).filter(token => token.token);
+};
+
 export const tokenApi = {
   // Get list of tokens
-  getTokens: async (): Promise<Token[]> => {
+  getTokens: async (page = '1', version?: number): Promise<Token[]> => {
     try {
-      const response = await api.post('/tokens');
-      return response.data;
+      const response = await api.post('/tokens', {
+        page,
+        version,
+        list: true,
+      });
+      return parseTokensResponse(response.data);
     } catch (error) {
       console.error('Failed to fetch tokens:', error);
-      // Return mock data if API fails
-      return getMockTokens();
+      return [];
     }
   },
 
   // Get live tokens
   getLiveTokens: async (): Promise<Token[]> => {
     try {
-      const response = await api.post('/tokens/live');
-      return response.data;
+      const response = await api.post('/tokens/live', { list: true });
+      return parseTokensResponse(response.data);
     } catch (error) {
       console.error('Failed to fetch live tokens:', error);
-      return getMockTokens();
+      return [];
     }
   },
 
