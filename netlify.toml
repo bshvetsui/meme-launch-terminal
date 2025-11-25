@@ -6,6 +6,18 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/api/*"
+  to = "https://launch.meme/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/connection/websocket"
+  to = "wss://launch.meme/connection/websocket"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
