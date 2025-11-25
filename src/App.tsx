@@ -172,6 +172,7 @@ export default function App() {
     website: "https://orbiton.fun",
     telegram: "https://t.me/orbiton",
   });
+  const [creatingToken, setCreatingToken] = useState(false);
   const [portfolioHistory, setPortfolioHistory] = useState<EquityPoint[]>(mockPortfolioHistory);
   const [allocationSlices, setAllocationSlices] = useState<AllocationSlice[]>(mockAllocation);
   const [flowSeries, setFlowSeries] = useState<FlowPoint[]>(mockFlowSeries);
@@ -649,7 +650,7 @@ export default function App() {
     toast.success("New strong password suggested");
   };
 
-  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isAuthenticated) {
       toast.error("Authenticate first");
@@ -659,7 +660,54 @@ export default function App() {
       toast.error("Connect wallet to save drafts");
       return;
     }
-    toast.success("Draft saved. Token ready for review.");
+    setCreatingToken(true);
+    try {
+      const payload = {
+        name: createDraft.name.trim(),
+        symbol: createDraft.symbol.trim(),
+        chain: createDraft.chain,
+        supply: createDraft.supply,
+        hardcap: createDraft.hardcap,
+        website: createDraft.website?.trim() || undefined,
+        telegram: createDraft.telegram?.trim() || undefined,
+        creator: address ?? undefined,
+      };
+
+      const created = await tokenApi.createToken(payload);
+      const newToken =
+        created ??
+        ({
+          token: `draft-${Date.now()}`,
+          name: payload.name,
+          symbol: payload.symbol,
+          description: "User created token",
+          decimals: 9,
+          supply: payload.supply,
+          hardcap: payload.hardcap,
+          website: payload.website,
+          telegram: payload.telegram,
+          creator: payload.creator,
+          createdAt: Date.now(),
+          price: 0,
+          priceChange24h: 0,
+          volume24h: 0,
+          marketCap: 0,
+          holders: 0,
+          raised: 0,
+          trades: 0,
+          buys: 0,
+          sells: 0,
+        } as Token);
+
+      setTokens(prev => [newToken, ...prev.filter(token => token.token !== newToken.token)]);
+      setIsLiveTokens(true);
+      toast.success(created ? "Token created and added to the feed" : "Token saved locally (API fallback)");
+    } catch (error) {
+      console.error("Create token error", error);
+      toast.error("Failed to create token");
+    } finally {
+      setCreatingToken(false);
+    }
   };
 
   const handleClaimReward = (id: string) => {
@@ -2051,8 +2099,8 @@ export default function App() {
                       />
                     </label>
                     <div className="form-actions">
-                      <button type="submit" className="btn-primary" disabled={!isOnchainReady}>
-                        Save draft
+                      <button type="submit" className="btn-primary" disabled={!isOnchainReady || creatingToken}>
+                        {creatingToken ? "Creating..." : "Save draft"}
                       </button>
                       <button
                         type="button"

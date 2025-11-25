@@ -4,6 +4,18 @@ import type { Token, Transaction } from '../types';
 
 const API_BASE = 'https://launch.meme/api';
 
+export type CreateTokenPayload = {
+  name: string;
+  symbol: string;
+  chain: string;
+  supply: number;
+  hardcap: number;
+  website?: string;
+  telegram?: string;
+  photo?: string;
+  creator?: string;
+};
+
 const api = axios.create({
   baseURL: API_BASE,
   headers: {
@@ -90,6 +102,20 @@ export const tokenApi = {
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
       return [];
+    }
+  },
+
+  // Create a token
+  createToken: async (payload: CreateTokenPayload): Promise<Token | null> => {
+    try {
+      const response = await api.post('/tokens/create', payload);
+      const parsed = Array.isArray(response.data)
+        ? normalizeApiToken(response.data[0])
+        : normalizeApiToken(response.data);
+      return parsed.token ? parsed : null;
+    } catch (error) {
+      console.error('Failed to create token:', error);
+      return null;
     }
   },
 };
