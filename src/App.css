@@ -306,6 +306,9 @@
 .panel-subtitle { font-size: 13px; color: var(--muted); }
 .panel-subtitle + .pill { margin-left: auto; }
 .panel + .panel { margin-top: 12px; }
+.panel-actions { display: flex; align-items: center; gap: 10px; }
+.pager { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.pager .pager-label { color: var(--muted); }
 
 .charts-grid .panel { padding: 16px; }
 .chart { margin-top: 12px; }

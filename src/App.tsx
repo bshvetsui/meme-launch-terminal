@@ -133,6 +133,11 @@ export default function App() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
   const [isLiveTokens, setIsLiveTokens] = useState(false);
+  const [tokensPage, setTokensPage] = useState(1);
+  const TOKENS_PAGE_SIZE = 20;
+  const MAX_TOKENS = 300;
+  const tokenUpdateQueue = useRef<Token[]>([]);
+  const tokenFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -428,6 +433,23 @@ export default function App() {
         token.token?.toLowerCase().includes(query),
     );
   }, [tokens, searchQuery]);
+
+  useEffect(() => {
+    setTokensPage(1);
+  }, [searchQuery, tokens]);
+
+  const totalTokenPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredTokens.length / TOKENS_PAGE_SIZE)),
+    [filteredTokens.length],
+  );
+  const paginatedTokens = useMemo(() => {
+    const start = (tokensPage - 1) * TOKENS_PAGE_SIZE;
+    return filteredTokens.slice(start, start + TOKENS_PAGE_SIZE);
+  }, [filteredTokens, tokensPage, TOKENS_PAGE_SIZE]);
+
+  useEffect(() => {
+    setTokensPage(page => Math.min(page, totalTokenPages));
+  }, [totalTokenPages]);
 
   const totalMarketCap = useMemo(() => tokens.reduce((sum, token) => sum + (token.marketCap ?? 0), 0), [tokens]);
   const totalVolume = useMemo(() => tokens.reduce((sum, token) => sum + (token.volume24h ?? 0), 0), [tokens]);
@@ -1568,9 +1590,29 @@ export default function App() {
                       <div className="panel-title">Live order flow</div>
                       <p className="panel-subtitle">Auto-refresh every 8s</p>
                     </div>
-                   
+                    <div className="panel-actions">
+                      <div className="pager">
+                        <button
+                          className="ghost tiny"
+                          onClick={() => setTokensPage(page => Math.max(1, page - 1))}
+                          disabled={tokensPage <= 1}
+                        >
+                          Prev
+                        </button>
+                        <span className="pager-label">
+                          Page {tokensPage} / {totalTokenPages}
+                        </span>
+                        <button
+                          className="ghost tiny"
+                          onClick={() => setTokensPage(page => Math.min(totalTokenPages, page + 1))}
+                          disabled={tokensPage >= totalTokenPages}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <TokenTable tokens={filteredTokens} loading={tokensLoading} />
+                  <TokenTable tokens={paginatedTokens} loading={tokensLoading} />
                 </div>
               </motion.div>
             </>
