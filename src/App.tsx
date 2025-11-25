@@ -1,19 +1,7 @@
-import { useEffect, useMemo, useRef, useState, useDeferredValue, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useDeferredValue, useRef, type FormEvent, type ReactNode } from "react";
 import { TokenTable } from "./components/TokenTable";
 import { SearchBar } from "./components/SearchBar";
-import {
-  mockPortfolio,
-  mockOrders,
-  mockRewards,
-  mockChartData,
-  mockPools,
-  mockVaults,
-  mockNewsPosts,
-  mockPortfolioHistory,
-  mockAllocation,
-  mockFlowSeries,
-  mockAlphaSeries,
-} from "./data/mockData";
+import { mockRewards, mockChartData, mockPools, mockVaults, mockNewsPosts } from "./data/mockData";
 import type { Token, Reward, NewsPost } from "./types";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Toaster, toast } from "react-hot-toast";
@@ -45,9 +33,6 @@ import {
   BadgeCheck,
   ExternalLink,
   Zap,
-  Activity,
-  TrendingUp,
-  Gauge,
 } from "lucide-react";
 
 // ���������� ������ X (�� ������ Twitter)
@@ -65,22 +50,7 @@ const DiscordIcon = ({ size = 14 }: { size?: number }) => (
 );
 
 import { motion } from "framer-motion";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis,
-} from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import "./App.css";
 
 type PageKey = "dashboard" | "defi" | "portfolio" | "create" | "clicker" | "rewards" | "profile" | "news";
@@ -88,10 +58,6 @@ type SocialProvider = "Telegram" | "Discord" | "X" | "Email";
 type AuthMode = "login" | "register";
 type AuthSession = { provider: SocialProvider | "Email"; identifier: string; mode: AuthMode };
 type ClickerState = { charge: number; streak: number; totalClicks: number; boostLevel: number; autopilot: boolean };
-type EquityPoint = { label: string; value: number; pnl: number; deposits: number };
-type AllocationSlice = { name: string; symbol?: string; value: number; color: string };
-type FlowPoint = { label: string; inflow: number; outflow: number };
-type AlphaPoint = { label: string; alpha: number; beta: number };
 
 const navItems: Array<{ key: PageKey; label: string; icon: ReactNode; badge?: string }> = [
   { key: "dashboard", label: "Dashboard", icon: <LineChartIcon size={18} />, badge: "live" },
@@ -105,6 +71,7 @@ const navItems: Array<{ key: PageKey; label: string; icon: ReactNode; badge?: st
 ];
 const gatedPages = new Set<PageKey>(["defi", "portfolio", "create"]);
 const AUTH_STORAGE_KEY = "ml-terminal-auth";
+const CREATED_STORAGE_KEY = "ml-created-tokens";
 
 const usd = (value: number) =>
   new Intl.NumberFormat("en-US", {
@@ -139,19 +106,6 @@ export default function App() {
   const tokenFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [createdTokens, setCreatedTokens] = useState<Token[]>([]);
   const [tokensLoaded, setTokensLoaded] = useState(false);
-  const [chartsLive, setChartsLive] = useState(false);
-  type PortfolioEntry = { token: string; balance: number; value: number; pnl: number; pnlPercentage: number };
-  const createdTokensPortfolio = useMemo<PortfolioEntry[]>(
-    () =>
-      createdTokens.map(token => ({
-        token: token.token,
-        balance: token.supply,
-        value: token.marketCap ?? 0,
-        pnl: 0,
-        pnlPercentage: 0,
-      })),
-    [createdTokens],
-  );
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -181,6 +135,7 @@ export default function App() {
   const [otpRequested, setOtpRequested] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [newsPosts] = useState<NewsPost[]>(mockNewsPosts);
+  const createFormRef = useRef<HTMLFormElement | null>(null);
   const [createDraft, setCreateDraft] = useState({
     name: "Orbiton",
     symbol: "ORB",
@@ -191,11 +146,6 @@ export default function App() {
     telegram: "https://t.me/orbiton",
   });
   const [creatingToken, setCreatingToken] = useState(false);
-  const [portfolioHistory, setPortfolioHistory] = useState<EquityPoint[]>(mockPortfolioHistory);
-  const [allocationSlices, setAllocationSlices] = useState<AllocationSlice[]>(mockAllocation);
-  const [flowSeries, setFlowSeries] = useState<FlowPoint[]>(mockFlowSeries);
-  const [alphaSeries, setAlphaSeries] = useState<AlphaPoint[]>(mockAlphaSeries);
-  const [riskHealth, setRiskHealth] = useState(72);
   const [clickerState, setClickerState] = useState<ClickerState>({
     charge: 28,
     streak: 0,
@@ -212,6 +162,36 @@ export default function App() {
   const isWalletConnected = isConnected;
   const isAuthenticated = !!authSession;
   const isOnchainReady = isAuthenticated && isWalletConnected;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const storedCreated = localStorage.getItem(CREATED_STORAGE_KEY);
+      if (storedCreated) {
+        const parsed: Token[] = JSON.parse(storedCreated);
+        setCreatedTokens(parsed);
+      }
+    } catch (error) {
+      console.warn("Failed to restore created tokens", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(CREATED_STORAGE_KEY, JSON.stringify(createdTokens));
+    } catch (error) {
+      console.warn("Failed to persist created tokens", error);
+    }
+  }, [createdTokens]);
+
+  useEffect(() => {
+    setTokens(prev => {
+      const map = new Map<string, Token>();
+      [...createdTokens, ...prev].forEach(t => map.set(t.token, t));
+      return Array.from(map.values()).slice(0, MAX_TOKENS);
+    });
+  }, [createdTokens]);
+
   useEffect(() => {
     // Cursor trail off for performance
     if (typeof window === "undefined") return;
@@ -321,73 +301,6 @@ export default function App() {
   }, [tokensLoaded]);
 
   useEffect(() => {
-    if (activePage !== "portfolio" || !chartsLive) return;
-
-    const interval = setInterval(() => {
-      setPortfolioHistory(prev => {
-        const last = prev[prev.length - 1] ?? {
-          label: "Now",
-          value: mockPortfolio.totalValue,
-          pnl: mockPortfolio.totalPnl,
-          deposits: 1200,
-        };
-        const now = new Date();
-        const label = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-        const drift = 1 + (Math.random() - 0.5) * 0.016;
-        const noise = (Math.random() - 0.5) * 140;
-        const nextValue = Math.max(3200, last.value * drift + noise);
-        const baseline = mockPortfolio.totalValue;
-        const nextPnl = nextValue - baseline;
-        const nextDeposits = Math.max(800, last.deposits + (Math.random() - 0.55) * 140);
-        const point: EquityPoint = {
-          label,
-          value: Number(nextValue.toFixed(2)),
-          pnl: Number(nextPnl.toFixed(2)),
-          deposits: Number(nextDeposits.toFixed(2)),
-        };
-        return [...prev.slice(-23), point];
-      });
-
-      setAllocationSlices(prev => {
-        const jittered = prev.map(slice => ({
-          ...slice,
-          value: Math.max(6, slice.value + (Math.random() - 0.5) * 3.2),
-        }));
-        const total = jittered.reduce((sum, slice) => sum + slice.value, 0);
-        return jittered.map(slice => ({
-          ...slice,
-          value: Number(((slice.value / total) * 100).toFixed(1)),
-        }));
-      });
-
-      setFlowSeries(prev => {
-        const now = new Date();
-        const label = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-        const inflow = Math.round(320 + Math.random() * 380);
-        const outflow = Math.round(140 + Math.random() * 250);
-        const next: FlowPoint = { label, inflow, outflow };
-        return [...prev.slice(-9), next];
-      });
-
-      setAlphaSeries(prev => {
-        const now = new Date();
-        const label = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-        const nextAlpha = Number((1 + Math.random() * 0.3).toFixed(2));
-        const nextBeta = Number((0.7 + Math.random() * 0.35).toFixed(2));
-        return [...prev.slice(-11), { label, alpha: nextAlpha, beta: nextBeta }];
-      });
-
-      setRiskHealth(prev => {
-        const drift = (Math.random() - 0.5) * 3.5;
-        const next = Math.min(96, Math.max(48, prev + drift));
-        return Number(next.toFixed(1));
-      });
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [activePage, chartsLive]);
-
-  useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(AUTH_STORAGE_KEY) : null;
     if (stored) {
       try {
@@ -492,36 +405,17 @@ export default function App() {
     () => (tokens.length ? tokens.reduce((sum, token) => sum + (token.priceChange24h ?? 0), 0) / tokens.length : 0),
     [tokens],
   );
-  const latestEquity = portfolioHistory[portfolioHistory.length - 1] ?? mockPortfolioHistory[0];
-  const equityChange = useMemo(() => {
-    if (!portfolioHistory.length) return { absolute: 0, percent: 0 };
-    const first = portfolioHistory[0].value;
-    const last = portfolioHistory[portfolioHistory.length - 1].value;
-    const absolute = last - first;
-    const percent = first ? (absolute / first) * 100 : 0;
-    return { absolute, percent };
-  }, [portfolioHistory]);
-  const latestFlow = flowSeries[flowSeries.length - 1] ?? { inflow: 0, outflow: 0, label: "" };
-  const netFlow = latestFlow.inflow - latestFlow.outflow;
-  const topAllocation = useMemo(() => {
-    if (!allocationSlices.length) return null;
-    const sorted = [...allocationSlices].sort((a, b) => b.value - a.value);
-    return sorted[0];
-  }, [allocationSlices]);
-  const drawdown = useMemo(() => {
-    if (!portfolioHistory.length) return 0;
-    const peak = portfolioHistory.reduce((max, point) => Math.max(max, point.value), portfolioHistory[0].value);
-    const last = portfolioHistory[portfolioHistory.length - 1].value;
-    return peak ? ((peak - last) / peak) * 100 : 0;
-  }, [portfolioHistory]);
-  const allocationChartData = useMemo(
-    () => allocationSlices.map(slice => ({ ...slice, fill: slice.color })),
-    [allocationSlices],
-  );
-  const flowChartData = useMemo(
-    () => flowSeries.map(item => ({ ...item, outflow: -item.outflow })),
-    [flowSeries],
-  );
+  const createdTokenStats = useMemo(() => {
+    const totals = createdTokens.reduce(
+      (acc, token) => ({
+        marketCap: acc.marketCap + (token.marketCap ?? 0),
+        raised: acc.raised + (token.raised ?? 0),
+        holders: acc.holders + (token.holders ?? 0),
+      }),
+      { marketCap: 0, raised: 0, holders: 0 },
+    );
+    return { ...totals, count: createdTokens.length };
+  }, [createdTokens]);
 
   const handleConnect = async (target: "metaMask" | "trust") => {
     if (!isAuthenticated) {
@@ -719,49 +613,38 @@ export default function App() {
     }
     setCreatingToken(true);
     try {
-      const payload = {
+      const now = Date.now();
+      const symbol = createDraft.symbol.trim().toUpperCase();
+      const newToken: Token = {
+        token: `local-${now}-${Math.random().toString(36).slice(2, 8)}`,
         name: createDraft.name.trim(),
-        symbol: createDraft.symbol.trim(),
-        chain: createDraft.chain,
+        symbol,
+        description: "Local draft token",
+        decimals: 9,
         supply: createDraft.supply,
         hardcap: createDraft.hardcap,
         website: createDraft.website?.trim() || undefined,
         telegram: createDraft.telegram?.trim() || undefined,
-        creator: address ?? undefined,
+        creator: address ?? authSession?.identifier ?? "local-user",
+        createdAt: now,
+        price: 0,
+        priceChange24h: 0,
+        volume24h: 0,
+        marketCap: 0,
+        holders: 0,
+        raised: 0,
+        trades: 0,
+        buys: 0,
+        sells: 0,
       };
 
-      const created = await tokenApi.createToken(payload);
-      const newToken =
-        created ??
-        ({
-          token: `draft-${Date.now()}`,
-          name: payload.name,
-          symbol: payload.symbol,
-          description: "User created token",
-          decimals: 9,
-          supply: payload.supply,
-          hardcap: payload.hardcap,
-          website: payload.website,
-          telegram: payload.telegram,
-          creator: payload.creator,
-          createdAt: Date.now(),
-          price: 0,
-          priceChange24h: 0,
-          volume24h: 0,
-          marketCap: 0,
-          holders: 0,
-          raised: 0,
-          trades: 0,
-          buys: 0,
-          sells: 0,
-        } as Token);
-
       enqueueTokenUpdate(newToken);
+      setTokensPage(1);
       setCreatedTokens(prev => [newToken, ...prev.filter(token => token.token !== newToken.token)]);
-      toast.success(created ? "Token created and added to the feed" : "Token saved locally (API fallback)");
-    } catch (error) {
+      toast.success("Token saved locally and added to the feed");
+    } catch (error: any) {
       console.error("Create token error", error);
-      toast.error("Failed to create token");
+      toast.error("Failed to save token locally");
     } finally {
       setCreatingToken(false);
     }
@@ -1719,411 +1602,88 @@ export default function App() {
             </section>
           )}
           {activePage === 'portfolio' && (
-            <>
-              <section className="grid portfolio-grid">
-                <motion.div {...cardAnim}>
-                  <div className="panel">
-                    <div className="panel-head">
-                      <div>
-                      <div className="panel-title">Portfolio performance</div>
-                      <p className="panel-subtitle">Aggregated balances from mock wallet.</p>
-                      
+            <section className="grid portfolio-grid">
+              <motion.div {...cardAnim}>
+                <div className="panel">
+                  <div className="panel-head">
+                    <div>
+                      <div className="panel-title">My created tokens</div>
+                      <p className="panel-subtitle">Only tokens minted through Create Token are shown here.</p>
                     </div>
-                      <div className={`pill ${mockPortfolio.totalPnl >= 0 ? 'pill-positive' : 'pill-negative'}`}>
-                        {mockPortfolio.totalPnl >= 0 ? '+' : ''}
-                        {usd(mockPortfolio.totalPnl)} PnL
-                      </div>
-                    </div>
-                    <div className="portfolio-summary">
-                      <div>
-                        <div className="label">Total value</div>
-                        <div className="value">{usd(mockPortfolio.totalValue)}</div>
-                      </div>
-                      <div>
-                        <div className="label">PNL</div>
-                        <div className={`value ${mockPortfolio.totalPnl >= 0 ? 'positive' : 'negative'}`}>
-                          {usd(mockPortfolio.totalPnl)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="label">Wallet</div>
-                        <div className="value">{shortAddress(mockPortfolio.wallet)}</div>
-                      </div>
-                    </div>
-
-                      <div className="portfolio-list">
-                        {mockPortfolio.tokens.map(token => (
-                          <div key={token.token} className="portfolio-row">
-                            <div>
-                              <div className="label">{token.token}</div>
-                            <div className="value">{compact(token.balance)} units</div>
-                          </div>
-                          <div className="value">{usd(token.value)}</div>
-                          <div className={`pill ${token.pnl >= 0 ? 'pill-positive' : 'pill-negative'}`}>
-                            {token.pnl >= 0 ? '+' : ''}
-                            {token.pnlPercentage}%
-                          </div>
-                        </div>
-                        ))}
-                        {createdTokensPortfolio.map(token => (
-                          <div key={token.token} className="portfolio-row">
-                            <div>
-                              <div className="label">{token.token}</div>
-                              <div className="value">{compact(token.balance)} units</div>
-                            </div>
-                            <div className="value">{usd(token.value)}</div>
-                            <div className="pill pill-positive">+0%</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-
-                <motion.div {...cardAnim}>
-                  <div className="panel secondary">
-                    <div className="panel-head">
-                      <div className="panel-title">Automation</div>
-                      <p className="panel-subtitle">Recent limit orders (mocked).</p>
-                    </div>
-                    <div className="orders">
-                      {mockOrders.map(order => (
-                        <div key={order.orderId} className="order-card">
-                          <div className="order-head">
-                            <span className={`pill ${order.side === 'buy' ? 'pill-positive' : 'pill-negative'}`}>
-                              {order.side.toUpperCase()}
-                            </span>
-                            <span className="order-status">{order.status}</span>
-                          </div>
-                          <div className="order-body">
-                            <div className="label">Token</div>
-                            <div className="value">{order.token}</div>
-                            <div className="label">Trigger</div>
-                            <div className="value">{order.triggerPriceSol} SOL</div>
-                            <div className="label">Amount</div>
-                            <div className="value">{order.amountSol} SOL</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {authOverlay}
-                  </div>
-                </motion.div>
-              </section>
-
-              <section className="grid portfolio-analytics">
-                <motion.div {...cardAnim}>
-                  <div className="panel">
-                    <div className="panel-head">
-                      <div>
-                        <div className="panel-title">Equity curve</div>
-                        <p className="panel-subtitle">NAV feed refreshing in real time.</p>
-                      </div>
-                      <div className={`pill ${equityChange.absolute >= 0 ? 'pill-positive' : 'pill-negative'}`}>
-                        {equityChange.absolute >= 0 ? '+' : '-'}
-                        {usd(Math.abs(equityChange.absolute))}
-                        <span className="label">{equityChange.percent.toFixed(2)}%</span>
-                      </div>
-                    </div>
-                    <div className="chart-meta">
-                      <div>
-                        <div className="label">Balance</div>
-                        <div className="value">{usd(latestEquity.value)}</div>
-                      </div>
-                      <div>
-                        <div className="label">Deposits</div>
-                        <div className="value">{usd(latestEquity.deposits)}</div>
-                      </div>
-                      <div>
-                        <div className="label">Net flow</div>
-                        <div className={`value ${netFlow >= 0 ? 'positive' : 'negative'}`}>
-                          {netFlow >= 0 ? '+' : '-'}
-                          {usd(Math.abs(netFlow))}
-                        </div>
-                      </div>
-                      <span className="pill pill-live">streaming</span>
-                    </div>
-                    <div className="chart" role="img" aria-label="Portfolio equity curve updated every few seconds">
-                      <ResponsiveContainer width="100%" height={230}>
-                        <AreaChart data={portfolioHistory}>
-                          <defs>
-                            <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#7ae0ff" stopOpacity={0.7} />
-                              <stop offset="100%" stopColor="#7ae0ff" stopOpacity={0.05} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
-                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis yAxisId="value" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis yAxisId="pnl" orientation="right" tick={false} axisLine={false} />
-                          <Tooltip
-                            contentStyle={{ background: '#0c0f1b', border: '1px solid #7ae0ff', color: '#e8f2ff' }}
-                            labelStyle={{ color: '#e8f2ff' }}
-                          />
-                          <Area
-                            yAxisId="value"
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#7ae0ff"
-                            fill="url(#equityFill)"
-                            strokeWidth={2.2}
-                            isAnimationActive={allowChartAnimation}
-                          />
-                          <Line
-                            yAxisId="pnl"
-                            type="monotone"
-                            dataKey="pnl"
-                            stroke="#c08bff"
-                            strokeWidth={1.6}
-                            dot={false}
-                            isAnimationActive={allowChartAnimation}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div {...cardAnim}>
-                  <div className="panel secondary">
-                    <div className="panel-head">
-                      <div className="panel-title">Alpha / beta</div>
-                      <p className="panel-subtitle">strategy vs market correlation.</p>
-                      <button className="ghost tiny" onClick={() => setChartsLive(prev => !prev)}>
-                        {chartsLive ? "Pause charts" : "Resume charts"}
+                    <div className="panel-actions">
+                      <span className="pill pill-live">{createdTokens.length} live</span>
+                      <button className="btn-primary ghosty" onClick={() => setActivePage('create')}>
+                        New token <ArrowRight size={14} />
                       </button>
                     </div>
-                    <div className="chart-meta">
-                      <div className="chart-icon">
-                        <Activity size={16} />
-                        <span className="label">Alpha</span>
-                        <span className="value">{(alphaSeries.at(-1)?.alpha ?? 0).toFixed(2)}x</span>
-                      </div>
-                      <div className="chart-icon">
-                        <TrendingUp size={16} />
-                        <span className="label">Beta</span>
-                        <span className="value">{(alphaSeries.at(-1)?.beta ?? 0).toFixed(2)}x</span>
-                      </div>
-                      <div className="chart-icon">
-                        <Gauge size={16} />
-                        <span className="label">Health</span>
-                        <span className="value">{riskHealth}%</span>
-                      </div>
-                    </div>
-                    <div className="chart" role="img" aria-label="Alpha and beta chart">
-                      <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={alphaSeries}>
-                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
-                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis
-                            tick={{ fill: '#94a7c6', fontSize: 11 }}
-                            axisLine={false}
-                            tickLine={false}
-                            domain={['dataMin', 'dataMax']}
-                          />
-                          <Tooltip
-                            contentStyle={{ background: '#0c0f1b', border: '1px solid #7df7c2', color: '#e8f2ff' }}
-                            labelStyle={{ color: '#e8f2ff' }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="alpha"
-                            stroke="#7df7c2"
-                            strokeWidth={2}
-                            dot={false}
-                            isAnimationActive={allowChartAnimation}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="beta"
-                            stroke="#7ae0ff"
-                            strokeWidth={2}
-                            dot={false}
-                            strokeDasharray="5 5"
-                            isAnimationActive={allowChartAnimation}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="chart-stat-grid">
-                      <div className="chart-stat">
-                        <div className="label">Drawdown</div>
-                        <div className="value">{drawdown.toFixed(2)}%</div>
-                      </div>
-                      <div className="chart-stat">
-                        <div className="label">Stability</div>
-                        <div className="risk-meter" aria-label={`Portfolio health ${riskHealth}%`}>
-                          <div className="risk-meter-fill" style={{ width: `${riskHealth}%` }} />
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                </motion.div>
+                  {createdTokens.length > 0 ? (
+                    <TokenTable tokens={createdTokens} loading={false} />
+                  ) : (
+                    <div className="auth-wall">
+                      <p>Create a token to see it here instantly from the backend feed.</p>
+                      <button className="btn-primary" onClick={() => setActivePage('create')}>
+                        Create token
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
-                <motion.div {...cardAnim}>
-                  <div className="panel secondary">
-                    <div className="panel-head">
-                      <div className="panel-title">Holdings map</div>
-                      <p className="panel-subtitle">Normalized positions from the wallet.</p>
+              <motion.div {...cardAnim}>
+                <div className="panel secondary">
+                  <div className="panel-head">
+                    <div className="panel-title">Portfolio summary</div>
+                    <p className="panel-subtitle">Aggregates only the tokens you created.</p>
+                  </div>
+                  <div className="portfolio-summary compact">
+                    <div>
+                      <div className="label">Tokens</div>
+                      <div className="value">{createdTokenStats.count}</div>
                     </div>
-                    <div className="chart" role="img" aria-label="Portfolio allocation donut">
-                      <ResponsiveContainer width="100%" height={240}>
-                        <RadialBarChart
-                          innerRadius="30%"
-                          outerRadius="95%"
-                          data={allocationChartData}
-                          startAngle={90}
-                          endAngle={-270}
-                        >
-                          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                          <RadialBar background dataKey="value" cornerRadius={8} isAnimationActive={allowChartAnimation} />
-                          <Tooltip
-                            formatter={(value: number, name: string, entry: any) =>
-                              [`${value.toFixed(1)}%`, entry?.payload?.symbol ?? name]
-                            }
-                            contentStyle={{ background: '#0c0f1b', border: '1px solid #7ae0ff', color: '#e8f2ff' }}
-                            itemStyle={{ color: '#e8f2ff' }}
-                            labelStyle={{ color: '#e8f2ff' }}
-                          />
-                        </RadialBarChart>
-                      </ResponsiveContainer>
+                    <div>
+                      <div className="label">Raised</div>
+                      <div className="value">{usd(createdTokenStats.raised)}</div>
                     </div>
-                    <div className="chart-legend">
-                      {allocationSlices.map(slice => (
-                        <div key={slice.name} className="legend-chip">
-                          <span className="legend-swatch" style={{ background: slice.color }} />
-                          <span className="value">{slice.symbol ?? slice.name}</span>
-                          <span className="label">{slice.value.toFixed(1)}%</span>
-                        </div>
-                      ))}
+                    <div>
+                      <div className="label">Market cap</div>
+                      <div className="value">{usd(createdTokenStats.marketCap)}</div>
+                    </div>
+                    <div>
+                      <div className="label">Holders</div>
+                      <div className="value">{createdTokenStats.holders}</div>
                     </div>
                   </div>
-                </motion.div>
-
-                <motion.div {...cardAnim}>
-                  <div className="panel">
-                    <div className="panel-head">
-                      <div className="panel-title">Net flows</div>
-                      <p className="panel-subtitle">Deposits vs withdrawals, refreshed live.</p>
-                    </div>
-                    <div className="chart" role="img" aria-label="Bar chart of inflows and outflows">
-                      <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={flowChartData}>
-                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
-                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <Tooltip
-                            formatter={(value: number) => usd(Math.abs(value))}
-                            contentStyle={{ background: '#0c0f1b', border: '1px solid #c08bff', color: '#e8f2ff' }}
-                            labelStyle={{ color: '#e8f2ff' }}
-                          />
-                          <Bar
-                            dataKey="inflow"
-                            name="Inflow"
-                            stackId="flows"
-                            fill="#7df7c2"
-                            radius={[8, 8, 0, 0]}
-                            isAnimationActive={allowChartAnimation}
-                          />
-                          <Bar
-                            dataKey="outflow"
-                            name="Outflow"
-                            stackId="flows"
-                            fill="#ff8ba7"
-                            radius={[0, 0, 8, 8]}
-                            isAnimationActive={allowChartAnimation}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="chart-stat-grid">
-                      <div className="chart-stat">
-                        <div className="label">Latest inflow</div>
-                        <div className="value">{usd(latestFlow.inflow ?? 0)}</div>
+                  <div className="draft-preview">
+                    {createdTokens.slice(0, 4).map(token => (
+                      <div key={token.token} className="preview-row">
+                        <span>
+                          {token.name} ({token.symbol})
+                        </span>
+                        <span>{shortAddress(token.token)}</span>
                       </div>
-                      <div className="chart-stat">
-                        <div className="label">Latest outflow</div>
-                        <div className="value">{usd(latestFlow.outflow ?? 0)}</div>
+                    ))}
+                    {!createdTokens.length && (
+                      <div className="preview-row">
+                        <span>No tokens yet</span>
+                        <span className="label">Create one to populate this list</span>
                       </div>
-                      <div className="chart-stat">
-                        <div className="label">Net</div>
-                        <div className={`value ${netFlow >= 0 ? 'positive' : 'negative'}`}>
-                          {netFlow >= 0 ? '+' : '-'}
-                          {usd(Math.abs(netFlow))}
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                </motion.div>
-
-                <motion.div {...cardAnim}>
-                  <div className="panel secondary">
-                    <div className="panel-head">
-                      <div className="panel-title">PnL & drawdown</div>
-                      <p className="panel-subtitle">Same feed, isolated to profit curve.</p>
-                    </div>
-                    <div className="chart" role="img" aria-label="PnL area chart for the wallet">
-                      <ResponsiveContainer width="100%" height={220}>
-                        <AreaChart data={portfolioHistory}>
-                          <defs>
-                            <linearGradient id="pnlFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#c08bff" stopOpacity={0.7} />
-                              <stop offset="100%" stopColor="#c08bff" stopOpacity={0.05} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
-                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
-                          <Tooltip
-                            formatter={(value: number) => usd(value)}
-                            contentStyle={{ background: '#0c0f1b', border: '1px solid #c08bff', color: '#e8f2ff' }}
-                            labelStyle={{ color: '#e8f2ff' }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="pnl"
-                            stroke="#c08bff"
-                            fill="url(#pnlFill)"
-                            strokeWidth={2.2}
-                            isAnimationActive={allowChartAnimation}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="chart-stat-grid">
-                      <div className="chart-stat">
-                        <div className="label">Live PnL</div>
-                        <div className={`value ${latestEquity.pnl >= 0 ? 'positive' : 'negative'}`}>
-                          {latestEquity.pnl >= 0 ? '+' : '-'}
-                          {usd(Math.abs(latestEquity.pnl))}
-                        </div>
-                      </div>
-                      {topAllocation && (
-                        <div className="chart-stat">
-                          <div className="label">Top slice</div>
-                          <div className="value">{topAllocation.symbol ?? topAllocation.name}</div>
-                          <div className="label">{topAllocation.value.toFixed(1)}% allocation</div>
-                        </div>
-                      )}
-                      <div className="chart-stat">
-                        <div className="label">Health</div>
-                        <div className="value">{riskHealth}%</div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </section>
-            </>
+                </div>
+              </motion.div>
+            </section>
           )}
           {activePage === 'create' && (
             <section className="grid create-grid">
               <motion.div {...cardAnim}>
                 <div className="panel">
                   <div className="panel-head">
-                    <div className="panel-title">Create token draft</div>
-                    <p className="panel-subtitle">Requires wallet authorization.</p>
+                    <div className="panel-title">Create token</div>
+                    <p className="panel-subtitle">Sends payload to launch.meme API and lists it instantly.</p>
                   </div>
                   {!isOnchainReady && <div className="auth-badge">Locked</div>}
-                  <form className="form" onSubmit={handleCreateSubmit}>
+                  <form className="form" onSubmit={handleCreateSubmit} ref={createFormRef}>
                     <label className="field">
                       <span>Name</span>
                       <input
@@ -2197,15 +1757,9 @@ export default function App() {
                     </label>
                     <div className="form-actions">
                       <button type="submit" className="btn-primary" disabled={!isOnchainReady || creatingToken}>
-                        {creatingToken ? "Creating..." : "Save draft"}
+                        {creatingToken ? "Creating..." : "Create token"}
                       </button>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => (isOnchainReady ? toast('Preflight checks queued') : ensureAuthed('run preflight'))}
-                      >
-                        Run preflight
-                      </button>
+                      <div className="label">Tokens appear on Dashboard and Portfolio after creation.</div>
                     </div>
                   </form>
                   {authOverlay}
@@ -2216,7 +1770,7 @@ export default function App() {
                 <div className="panel secondary">
                   <div className="panel-head">
                     <div className="panel-title">Preview</div>
-                    <p className="panel-subtitle">Sends to wagmi client when you deploy.</p>
+                    <p className="panel-subtitle">Review details, then publish to market.</p>
                   </div>
                   <div className="draft-preview">
                     <div className="preview-row">
@@ -2253,10 +1807,16 @@ export default function App() {
                       <button
                         className="btn-primary ghosty"
                         type="button"
-                        onClick={() => (isOnchainReady ? toast('Deploy simulated (mock)') : ensureAuthed('deploy mock'))}
+                        onClick={() => {
+                          if (!isOnchainReady) {
+                            ensureAuthed('publish token');
+                            return;
+                          }
+                          createFormRef.current?.requestSubmit();
+                        }}
                         disabled={!isOnchainReady}
                       >
-                        Deploy mock <ArrowRight size={14} />
+                        Publish to market <ArrowRight size={14} />
                       </button>
                     </div>
                   </div>

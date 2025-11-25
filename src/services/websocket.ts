@@ -1,10 +1,10 @@
 // WebSocket manager for Centrifuge
 import { Centrifuge, Subscription } from 'centrifuge';
 
+// Fixed config (no env binding)
 const WS_URL = 'wss://launch.meme/connection/websocket';
-// Token extracted from the latest live frontend bundle (projectConfig.websocketToken)
 const WS_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3d3ciLCJpYXQiOjE3NDc5MDU4MTF9.Dgx3msdlTcunO_a61TkhK1957cDqPtY6ODyVDOknHZw';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJpYXQiOjE3NTcxNjY4ODh9.VEvlNmvIFS3ARM5R0jlNN4fwDDRz94WnKv8LDmtipNE';
 const WS_PREFIX = 'pumpfun';
 
 class WebSocketManager {

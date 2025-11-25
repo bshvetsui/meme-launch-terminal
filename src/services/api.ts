@@ -1,8 +1,9 @@
 // API service for launch.meme
+// Note: base URL is fixed to /api to avoid env coupling; configure proxy/redirect externally.
 import axios from 'axios';
 import type { Token, Transaction } from '../types';
 
-const API_BASE = 'https://launch.meme/api';
+const API_BASE = '/api';
 
 export type CreateTokenPayload = {
   name: string;
