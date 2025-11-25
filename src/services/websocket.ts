@@ -20,15 +20,17 @@ class WebSocketManager {
         token: WS_TOKEN,
       });
 
-      this.centrifuge.on('connected', () => {
+      this.centrifuge.on('connected', ctx => {
         console.log('WebSocket connected');
         this.isConnecting = false;
+        this.emit('connected', ctx);
         this.subscribeToChannels();
       });
 
-      this.centrifuge.on('disconnected', () => {
+      this.centrifuge.on('disconnected', ctx => {
         console.log('WebSocket disconnected');
         this.isConnecting = false;
+        this.emit('disconnected', ctx);
       });
 
       this.centrifuge.connect();

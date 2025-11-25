@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { TokenTable } from "./components/TokenTable";
 import { SearchBar } from "./components/SearchBar";
+import { tokenApi } from "./services/api";
+import { wsManager } from "./services/websocket";
 import {
   mockTokens,
   mockPortfolio,
@@ -129,7 +131,9 @@ const timeAgo = (timestamp: number) => {
 };
 
 export default function App() {
-  const [tokens, setTokens] = useState<Token[]>(mockTokens);
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [isLiveLoading, setIsLiveLoading] = useState(true);
+  const [isWsConnected, setIsWsConnected] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -246,19 +250,199 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTokens(prev =>
-        prev.map(token => {
-          const drift = (Math.random() - 0.5) * 0.08;
-          const price = Math.max(0.000001, (token.price ?? 0) * (1 + drift / 4));
-          const change = Math.max(-45, Math.min(45, (token.priceChange24h ?? 0) + drift * 10));
-          const volume24h = (token.volume24h ?? 0) + Math.floor(Math.random() * 2500);
-          const marketCap = token.marketCap ? Math.max(0, token.marketCap + Math.floor(drift * 60000)) : undefined;
-          return { ...token, price, priceChange24h: change, volume24h, marketCap };
-        }),
+    let isMounted = true;
+
+    const resolveTokenAddress = (payload: any) =>
+      payload?.token ?? payload?.address ?? payload?.ca ?? payload?.contract ?? payload?.mint ?? payload?.id ?? null;
+
+    const toNumber = (value: any) => {
+      if (value === null || value === undefined) return undefined;
+      const num = Number(value);
+      return Number.isFinite(num) ? num : undefined;
+    };
+
+    const upsertToken = (
+      incoming: Partial<Token> & { token?: string },
+      options?: { bumpTrades?: number; bumpBuys?: number; bumpSells?: number; bumpVolume?: number; placeOnTop?: boolean },
+    ) => {
+      const address = resolveTokenAddress(incoming);
+      if (!address) return;
+      const payload = { ...incoming, token: address };
+
+      setTokens(prev => {
+        const index = prev.findIndex(item => item.token === address);
+        if (index === -1) {
+          const base: Token = {
+            token: address,
+            name: payload.name ?? payload.symbol ?? "New token",
+            symbol: payload.symbol ?? (payload.name ?? "TKN").slice(0, 4).toUpperCase(),
+            decimals: payload.decimals ?? 9,
+            supply: payload.supply ?? 0,
+            hardcap: payload.hardcap ?? 0,
+            price: payload.price ?? 0,
+            priceChange24h: payload.priceChange24h ?? 0,
+            volume24h: (payload.volume24h ?? 0) + (options?.bumpVolume ?? 0),
+            marketCap: payload.marketCap,
+            holders: payload.holders ?? 0,
+            liquidity: payload.liquidity,
+            photo: payload.photo,
+            metadataUri: payload.metadataUri,
+            createdAt: payload.createdAt ?? Date.now(),
+            creator: payload.creator,
+            raised: payload.raised ?? 0,
+            trades: (payload.trades ?? 0) + (options?.bumpTrades ?? 0),
+            buys: (payload.buys ?? 0) + (options?.bumpBuys ?? 0),
+            sells: (payload.sells ?? 0) + (options?.bumpSells ?? 0),
+          };
+          const next = options?.placeOnTop === false ? [...prev, base] : [base, ...prev];
+          return next;
+        }
+
+        const current = prev[index];
+        const updated: Token = {
+          ...current,
+          ...payload,
+          price: payload.price ?? current.price,
+          priceChange24h: payload.priceChange24h ?? current.priceChange24h,
+          volume24h: (payload.volume24h ?? current.volume24h ?? 0) + (options?.bumpVolume ?? 0),
+          marketCap: payload.marketCap ?? current.marketCap,
+          holders: payload.holders ?? current.holders,
+          liquidity: payload.liquidity ?? current.liquidity,
+          createdAt: payload.createdAt ?? current.createdAt ?? Date.now(),
+          raised: payload.raised ?? current.raised,
+          trades: (payload.trades ?? current.trades ?? 0) + (options?.bumpTrades ?? 0),
+          buys: (payload.buys ?? current.buys ?? 0) + (options?.bumpBuys ?? 0),
+          sells: (payload.sells ?? current.sells ?? 0) + (options?.bumpSells ?? 0),
+        };
+        const next = [...prev];
+        next[index] = updated;
+        return next;
+      });
+    };
+
+    const handlePriceUpdate = (payload: any) => {
+      const token = resolveTokenAddress(payload);
+      if (!token) return;
+      upsertToken({
+        token,
+        name: payload.name ?? payload.tokenName,
+        symbol: payload.symbol ?? payload.ticker,
+        price: toNumber(payload.price ?? payload.priceUsd ?? payload.lastPrice),
+        priceChange24h: toNumber(payload.priceChange24h ?? payload.change24h ?? payload.change),
+        marketCap: toNumber(payload.marketCap ?? payload.mcap ?? payload.mc),
+        volume24h: toNumber(payload.volume24h ?? payload.volume ?? payload.vol24h ?? payload.v24),
+        holders: payload.holders ?? payload.holdersCount,
+        liquidity: toNumber(payload.liquidity ?? payload.liq),
+      });
+      setIsLiveLoading(false);
+    };
+
+    const handleTrade = (payload: any) => {
+      const token = resolveTokenAddress(payload);
+      if (!token) return;
+      const isBuy = payload.side === "buy" || payload.side === 1 || payload.side === "1" || payload.direction === "buy";
+      const volumeDelta =
+        toNumber(payload.volume ?? payload.volume24h ?? payload.amountUsd ?? payload.sol ?? payload.quoteVolume) ?? 0;
+      upsertToken(
+        {
+          token,
+          name: payload.name,
+          symbol: payload.symbol,
+          price: toNumber(payload.price ?? payload.lastPrice ?? payload.priceUsd),
+        },
+        {
+          bumpTrades: 1,
+          bumpBuys: isBuy ? 1 : 0,
+          bumpSells: isBuy ? 0 : 1,
+          bumpVolume: volumeDelta,
+        },
       );
-    }, 8000);
-    return () => clearInterval(interval);
+      setIsLiveLoading(false);
+    };
+
+    const handleNewToken = (payload: any) => {
+      const token = resolveTokenAddress(payload);
+      if (!token) return;
+      upsertToken(
+        {
+          token,
+          name: payload.name ?? payload.tokenName,
+          symbol: payload.symbol ?? payload.ticker,
+          decimals: payload.decimals ?? payload.dec ?? 9,
+          supply: toNumber(payload.supply ?? payload.totalSupply) ?? 0,
+          hardcap: toNumber(payload.hardcap ?? payload.hardCap ?? payload.maxRaise) ?? 0,
+          price: toNumber(payload.price ?? payload.launchPrice),
+          priceChange24h: toNumber(payload.priceChange24h ?? payload.change24h),
+          volume24h: toNumber(payload.volume24h ?? payload.volume),
+          marketCap: toNumber(payload.marketCap ?? payload.mcap),
+          holders: payload.holders ?? 0,
+          photo: payload.photo ?? payload.logo ?? payload.image,
+          createdAt: payload.createdAt ?? Date.now(),
+          creator: payload.creator ?? payload.owner ?? payload.wallet,
+          raised: toNumber(payload.raised ?? payload.totalRaised),
+        },
+        { placeOnTop: true },
+      );
+      setIsLiveLoading(false);
+    };
+
+    const handleGlobal = (payload: any) => {
+      if (payload?.type === "newToken" || payload?.type === "token") {
+        handleNewToken(payload);
+      } else if (payload?.type === "price") {
+        handlePriceUpdate(payload);
+      } else if (payload?.type === "trade") {
+        handleTrade(payload);
+      }
+    };
+
+    const fetchInitial = async () => {
+      try {
+        const liveTokens = await tokenApi.getLiveTokens();
+        if (!isMounted) return;
+        if (liveTokens.length) {
+          setTokens(liveTokens);
+        } else {
+          setTokens(mockTokens);
+        }
+      } catch (error) {
+        console.error("Failed to fetch live tokens", error);
+        if (isMounted) {
+          setTokens(mockTokens);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLiveLoading(false);
+        }
+      }
+    };
+
+    const handleConnected = () => {
+      setIsWsConnected(true);
+      setIsLiveLoading(false);
+    };
+    const handleDisconnected = () => setIsWsConnected(false);
+
+    fetchInitial();
+
+    wsManager.on("connected", handleConnected);
+    wsManager.on("disconnected", handleDisconnected);
+    wsManager.on("priceUpdate", handlePriceUpdate);
+    wsManager.on("trade", handleTrade);
+    wsManager.on("newToken", handleNewToken);
+    wsManager.on("global", handleGlobal);
+    wsManager.connect();
+
+    return () => {
+      isMounted = false;
+      wsManager.off("connected", handleConnected);
+      wsManager.off("disconnected", handleDisconnected);
+      wsManager.off("priceUpdate", handlePriceUpdate);
+      wsManager.off("trade", handleTrade);
+      wsManager.off("newToken", handleNewToken);
+      wsManager.off("global", handleGlobal);
+      wsManager.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -1248,7 +1432,8 @@ export default function App() {
               </span>
             </div>
             <div className="sidebar-foot success">
-              <span className="dot online" /> System online
+              <span className={`dot ${isWsConnected ? 'online' : ''}`} />{" "}
+              {isWsConnected ? "Live feed online" : "Live feed reconnecting"}
             </div>
           </div>
         </div>
@@ -1469,11 +1654,13 @@ export default function App() {
                   <div className="panel-head">
                     <div>
                       <div className="panel-title">Live order flow</div>
-                      <p className="panel-subtitle">Auto-refresh every 8s</p>
+                      <p className="panel-subtitle">
+                        WebSocket live feed {isWsConnected ? 'synced' : 'reconnecting...'}
+                      </p>
                     </div>
                    
                   </div>
-                  <TokenTable tokens={filteredTokens} loading={false} />
+                  <TokenTable tokens={filteredTokens} loading={isLiveLoading} />
                 </div>
               </motion.div>
             </>
