@@ -2,7 +2,16 @@
 import axios from 'axios';
 import type { Token, Transaction } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const resolveApiBase = () => {
+  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
+  if (typeof window !== 'undefined') {
+    // In production use the live host; in dev rely on Vite proxy (/api).
+    return window.location.hostname === 'localhost' ? '/api' : 'https://launch.meme/api';
+  }
+  return 'https://launch.meme/api';
+};
+
+const API_BASE = resolveApiBase();
 
 const api = axios.create({
   baseURL: API_BASE,
