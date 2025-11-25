@@ -1569,7 +1569,7 @@ export default function App() {
                   <div className="panel-head">
                     <div>
                       <div className="panel-title">Live order flow</div>
-                      <p className="panel-subtitle">Auto-refresh every 8s</p>
+                      <p className="panel-subtitle">Auto-refresh</p>
                     </div>
                     <div className="panel-actions">
                       {createdTokens.length > 0 && <span className="pill pill-live">My tokens</span>}
