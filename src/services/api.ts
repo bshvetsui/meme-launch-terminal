@@ -2,16 +2,7 @@
 import axios from 'axios';
 import type { Token, Transaction } from '../types';
 
-const resolveApiBase = () => {
-  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE;
-  if (typeof window !== 'undefined') {
-    // In production use the live host; in dev rely on Vite proxy (/api).
-    return window.location.hostname === 'localhost' ? '/api' : 'https://launch.meme/api';
-  }
-  return 'https://launch.meme/api';
-};
-
-const API_BASE = resolveApiBase();
+const API_BASE = 'https://launch.meme/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -20,85 +11,14 @@ const api = axios.create({
   },
 });
 
-const toNumber = (value: any) => {
-  if (value === null || value === undefined) return undefined;
-  const num = Number(value);
-  return Number.isFinite(num) ? num : undefined;
-};
-
-const normalizeTokens = (payload: any): Token[] => {
-  // API sometimes returns an array, sometimes an object keyed by token address.
-  const rawList: any[] = Array.isArray(payload)
-    ? payload
-    : payload?.tokens
-      ? Object.values(payload.tokens)
-      : [];
-
-  return rawList.map((item: any) => {
-    const priceUsd = toNumber(item.priceUsd ?? item.price);
-    const volumeUsd =
-      toNumber(item.volumeUsd ?? item.volume24h ?? item.volume30sUsd ?? item.volume) ?? 0;
-    const marketCap = toNumber(item.marketCapUsd ?? item.marketCap ?? item.mcap ?? item.mc);
-    const createdAt =
-      typeof item.createdAt === 'string' || typeof item.createdAt === 'number'
-        ? new Date(item.createdAt).getTime()
-        : typeof item.mint_time === 'number'
-          ? item.mint_time
-          : Date.now();
-
-    return {
-      token: item.token ?? item.address ?? '',
-      name: item.name ?? item.symbol ?? 'Token',
-      symbol: item.symbol ?? item.ticker ?? 'TKN',
-      description: item.description,
-      decimals: item.decimals ?? 9,
-      supply: item.supply ?? 0,
-      photo: item.photo ?? item.logo,
-      metadataUri: item.metadataUri,
-      hardcap: toNumber(item.hardcap ?? item.hardCap ?? 0) ?? 0,
-      website: item.website,
-      x: item.x,
-      telegram: item.telegram,
-      version: item.version,
-      price: priceUsd,
-      priceChange24h: toNumber(item.priceChange24h ?? item.change24h ?? item.change),
-      volume24h: volumeUsd,
-      marketCap,
-      holders: item.holders ?? item.holdersCount,
-      liquidity: toNumber(item.liquidity ?? item._balanceSol),
-      createdAt,
-      creator: item.creator,
-      raised: toNumber(item.progressSol ?? item.progress) ?? 0,
-      trades: item.txCount,
-      buys: item.buys,
-      sells: item.sells,
-    } as Token;
-  });
-};
-
-const fetchWithFetchApi = async (path: string): Promise<any> => {
-  const url = `${API_BASE}${path}`;
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-  if (!res.ok) {
-    throw new Error(`Fetch failed ${res.status}`);
-  }
-  return res.json();
-};
-
 export const tokenApi = {
   // Get list of tokens
   getTokens: async (): Promise<Token[]> => {
     try {
       const response = await api.post('/tokens');
-      return normalizeTokens(response.data);
+      return response.data;
     } catch (error) {
-      console.error('Failed to fetch tokens via axios:', error);
-      try {
-        const data = await fetchWithFetchApi('/tokens');
-        return normalizeTokens(data);
-      } catch (fallbackError) {
-        console.error('Failed to fetch tokens via fetch:', fallbackError);
-      }
+      console.error('Failed to fetch tokens:', error);
       // Return mock data if API fails
       return getMockTokens();
     }
@@ -108,20 +28,10 @@ export const tokenApi = {
   getLiveTokens: async (): Promise<Token[]> => {
     try {
       const response = await api.post('/tokens/live');
-      const normalized = normalizeTokens(response.data);
-      if (normalized.length === 0) {
-        // Fallback to full list if live feed is empty
-        return await tokenApi.getTokens();
-      }
-      return normalized;
+      return response.data;
     } catch (error) {
       console.error('Failed to fetch live tokens:', error);
-      // Fallback to main list if live endpoint is down
-      try {
-        return await tokenApi.getTokens();
-      } catch {
-        return getMockTokens();
-      }
+      return getMockTokens();
     }
   },
 
