@@ -398,15 +398,17 @@ export default function App() {
 
     const fetchInitial = async () => {
       try {
-        const liveTokens = await tokenApi.getLiveTokens();
+        // Prefer full list; live endpoint can be empty/unstable.
+        const liveTokens = await tokenApi.getTokens();
         if (!isMounted) return;
         if (liveTokens.length) {
           setTokens(liveTokens);
         } else {
-          setTokens(mockTokens);
+          const fallback = await tokenApi.getLiveTokens();
+          setTokens(fallback.length ? fallback : mockTokens);
         }
       } catch (error) {
-        console.error("Failed to fetch live tokens", error);
+        console.error("Failed to fetch tokens", error);
         if (isMounted) {
           setTokens(mockTokens);
         }
@@ -444,6 +446,22 @@ export default function App() {
       wsManager.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (tokens.length > 5) return;
+    const interval = setInterval(async () => {
+      try {
+        const refreshed = await tokenApi.getTokens();
+        if (refreshed.length) {
+          setTokens(refreshed);
+          setIsLiveLoading(false);
+        }
+      } catch (error) {
+        console.warn("Retry fetch tokens failed", error);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [tokens.length]);
 
   useEffect(() => {
     const interval = setInterval(() => {

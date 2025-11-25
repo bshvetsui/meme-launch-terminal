@@ -1,7 +1,16 @@
 // WebSocket manager for Centrifuge
 import { Centrifuge, Subscription } from 'centrifuge';
 
-const WS_URL = 'wss://launch.meme/connection/websocket';
+const resolveWsUrl = () => {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return 'wss://launch.meme/connection/websocket';
+  }
+  // In dev, let Vite proxy handle if configured; otherwise fallback to prod URL.
+  return `${window.location.origin.replace(/^http/, 'ws')}/connection/websocket`;
+};
+
+const WS_URL = resolveWsUrl();
 const WS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJpYXQiOjE3NTcxNjY4ODh9.VEvlNmvIFS3ARM5R0jlNN4fwDDRz94WnKv8LDmtipNE';
 
 class WebSocketManager {
