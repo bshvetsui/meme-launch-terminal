@@ -16,10 +16,14 @@ export const normalizeApiToken = (raw: any): Token => {
   const createdAtSource = raw?.mint_time ?? raw?.createdAt;
   const parsedCreatedAt = createdAtSource ? Number(createdAtSource) || Date.parse(createdAtSource) : Date.now();
 
+  const tokenAddress = raw?.token ?? raw?.address ?? '';
+  const name = raw?.name || raw?.symbol || 'Token';
+  const symbol = raw?.symbol || raw?.name || 'TKN';
+
   return {
     token: raw?.token ?? raw?.address ?? '',
-    name: raw?.name ?? '',
-    symbol: raw?.symbol ?? '',
+    name,
+    symbol,
     description: raw?.description,
     decimals: raw?.decimals ?? 9,
     supply: raw?.supply ?? 0,

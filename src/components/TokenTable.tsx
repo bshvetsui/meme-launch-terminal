@@ -90,7 +90,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
                     <Copy size={14} />
                   </button>
                   <div className="ca-creator">
-                    by {token.creator ? `${token.creator.slice(0, 4)}...${token.creator.slice(-4)}` : 'Unknown'}
+                    {token.creator ? `by ${token.creator.slice(0, 4)}...${token.creator.slice(-4)}` : ''}
                   </div>
                 </div>
               </td>

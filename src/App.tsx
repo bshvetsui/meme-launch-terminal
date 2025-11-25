@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { TokenTable } from "./components/TokenTable";
 import { SearchBar } from "./components/SearchBar";
 import {
-  mockTokens,
   mockPortfolio,
   mockOrders,
   mockRewards,
@@ -131,8 +130,9 @@ const timeAgo = (timestamp: number) => {
 };
 
 export default function App() {
-  const [tokens, setTokens] = useState<Token[]>(mockTokens);
+  const [tokens, setTokens] = useState<Token[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
+  const [isLiveTokens, setIsLiveTokens] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -255,8 +255,9 @@ export default function App() {
       setTokensLoading(true);
       try {
         const apiTokens = await tokenApi.getTokens("1");
-        if (!cancelled && apiTokens.length >= 10) {
+        if (!cancelled && apiTokens.length > 0) {
           setTokens(apiTokens);
+          setIsLiveTokens(true);
         }
       } catch (error) {
         console.error("Failed to load tokens", error);
@@ -274,7 +275,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const MAX_TOKENS = 120;
     wsManager.connect();
 
     const handleMint = (payload: any) => {
@@ -282,16 +282,20 @@ export default function App() {
       if (!incoming.token) return;
       setTokens(prev => {
         const next = [incoming, ...prev.filter(token => token.token !== incoming.token)];
-        return next.slice(0, MAX_TOKENS);
+        return next;
       });
     };
 
     const handleUpdate = (payload: any) => {
       const incoming = normalizeApiToken(payload);
       if (!incoming.token) return;
-      setTokens(prev =>
-        prev.map(token => (token.token === incoming.token ? { ...token, ...incoming } : token)),
-      );
+      setTokens(prev => {
+        const exists = prev.some(token => token.token === incoming.token);
+        if (!exists) {
+          return [incoming, ...prev];
+        }
+        return prev.map(token => (token.token === incoming.token ? { ...token, ...incoming } : token));
+      });
     };
 
     wsManager.subscribe("mintTokens");
@@ -304,22 +308,6 @@ export default function App() {
       wsManager.off("tokenUpdates", handleUpdate);
       wsManager.disconnect();
     };
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTokens(prev =>
-        prev.map(token => {
-          const drift = (Math.random() - 0.5) * 0.08;
-          const price = Math.max(0.000001, (token.price ?? 0) * (1 + drift / 4));
-          const change = Math.max(-45, Math.min(45, (token.priceChange24h ?? 0) + drift * 10));
-          const volume24h = (token.volume24h ?? 0) + Math.floor(Math.random() * 2500);
-          const marketCap = token.marketCap ? Math.max(0, token.marketCap + Math.floor(drift * 60000)) : undefined;
-          return { ...token, price, priceChange24h: change, volume24h, marketCap };
-        }),
-      );
-    }, 8000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
