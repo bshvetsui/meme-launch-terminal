@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState, useDeferredValue, useRef, type FormEvent, type ReactNode } from "react";
 import { TokenTable } from "./components/TokenTable";
 import { SearchBar } from "./components/SearchBar";
-import { mockRewards, mockChartData, mockPools, mockVaults, mockNewsPosts } from "./data/mockData";
+import {
+  mockRewards,
+  mockChartData,
+  mockPools,
+  mockVaults,
+  mockNewsPosts,
+  mockPortfolioHistory,
+  mockAlphaSeries,
+  mockAllocation,
+  mockFlowSeries,
+} from "./data/mockData";
 import type { Token, Reward, NewsPost } from "./types";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { Toaster, toast } from "react-hot-toast";
@@ -33,6 +43,9 @@ import {
   BadgeCheck,
   ExternalLink,
   Zap,
+  Activity,
+  TrendingUp,
+  Gauge,
 } from "lucide-react";
 
 // ���������� ������ X (�� ������ Twitter)
@@ -50,7 +63,22 @@ const DiscordIcon = ({ size = 14 }: { size?: number }) => (
 );
 
 import { motion } from "framer-motion";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
+  CartesianGrid,
+} from "recharts";
 import "./App.css";
 
 type PageKey = "dashboard" | "defi" | "portfolio" | "create" | "clicker" | "rewards" | "profile" | "news";
@@ -405,6 +433,25 @@ export default function App() {
     () => (tokens.length ? tokens.reduce((sum, token) => sum + (token.priceChange24h ?? 0), 0) / tokens.length : 0),
     [tokens],
   );
+  const portfolioHistory = mockPortfolioHistory;
+  const flowChartData = mockFlowSeries;
+  const alphaSeries = mockAlphaSeries;
+  const allocationChartData = mockAllocation;
+  const riskHealth = 72;
+  const latestEquity = portfolioHistory[portfolioHistory.length - 1] ?? { value: 0, pnl: 0, deposits: 0 };
+  const firstEquity = portfolioHistory[0] ?? latestEquity;
+  const equityChange = {
+    absolute: latestEquity.value - firstEquity.value,
+    percent: firstEquity.value ? ((latestEquity.value - firstEquity.value) / firstEquity.value) * 100 : 0,
+  };
+  const latestFlow = flowChartData[flowChartData.length - 1] ?? { inflow: 0, outflow: 0 };
+  const netFlow = (latestFlow.inflow ?? 0) - (latestFlow.outflow ?? 0);
+  const allocationSlices = allocationChartData;
+  const topAllocation =
+    allocationSlices.reduce(
+      (top, slice) => (slice.value > (top?.value ?? 0) ? slice : top),
+      allocationSlices[0] ?? null,
+    ) ?? null;
   const createdTokenStats = useMemo(() => {
     const totals = createdTokens.reduce(
       (acc, token) => ({
@@ -1602,77 +1649,330 @@ export default function App() {
             </section>
           )}
           {activePage === 'portfolio' && (
-            <section className="grid portfolio-grid">
-              <motion.div {...cardAnim}>
-                <div className="panel">
-                  <div className="panel-head">
-                    <div>
-                      <div className="panel-title">My created tokens</div>
-                      <p className="panel-subtitle">Only tokens minted through Create Token are shown here.</p>
-                    </div>
-                    <div className="panel-actions">
-                      <span className="pill pill-live">{createdTokens.length} live</span>
-                      <button className="btn-primary ghosty" onClick={() => setActivePage('create')}>
-                        New token <ArrowRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  {createdTokens.length > 0 ? (
-                    <TokenTable tokens={createdTokens} loading={false} />
-                  ) : (
-                    <div className="auth-wall">
-                      <p>Create a token to see it here instantly from the backend feed.</p>
-                      <button className="btn-primary" onClick={() => setActivePage('create')}>
-                        Create token
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-
-              <motion.div {...cardAnim}>
-                <div className="panel secondary">
-                  <div className="panel-head">
-                    <div className="panel-title">Portfolio summary</div>
-                    <p className="panel-subtitle">Aggregates only the tokens you created.</p>
-                  </div>
-                  <div className="portfolio-summary compact">
-                    <div>
-                      <div className="label">Tokens</div>
-                      <div className="value">{createdTokenStats.count}</div>
-                    </div>
-                    <div>
-                      <div className="label">Raised</div>
-                      <div className="value">{usd(createdTokenStats.raised)}</div>
-                    </div>
-                    <div>
-                      <div className="label">Market cap</div>
-                      <div className="value">{usd(createdTokenStats.marketCap)}</div>
-                    </div>
-                    <div>
-                      <div className="label">Holders</div>
-                      <div className="value">{createdTokenStats.holders}</div>
-                    </div>
-                  </div>
-                  <div className="draft-preview">
-                    {createdTokens.slice(0, 4).map(token => (
-                      <div key={token.token} className="preview-row">
-                        <span>
-                          {token.name} ({token.symbol})
-                        </span>
-                        <span>{shortAddress(token.token)}</span>
+            <>
+              <section className="grid portfolio-grid">
+                <motion.div {...cardAnim}>
+                  <div className="panel">
+                    <div className="panel-head">
+                      <div>
+                        <div className="panel-title">My created tokens</div>
+                        <p className="panel-subtitle">Only tokens minted through Create Token are shown here.</p>
                       </div>
-                    ))}
-                    {!createdTokens.length && (
-                      <div className="preview-row">
-                        <span>No tokens yet</span>
-                        <span className="label">Create one to populate this list</span>
+                      <div className="panel-actions">
+                        <span className="pill pill-live">{createdTokens.length} live</span>
+                        <button className="btn-primary ghosty" onClick={() => setActivePage('create')}>
+                          New token <ArrowRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    {createdTokens.length > 0 ? (
+                      <TokenTable tokens={createdTokens} loading={false} />
+                    ) : (
+                      <div className="auth-wall">
+                        <p>Create a token to see it here instantly from the backend feed.</p>
+                        <button className="btn-primary" onClick={() => setActivePage('create')}>
+                          Create token
+                        </button>
                       </div>
                     )}
                   </div>
-                </div>
-              </motion.div>
-            </section>
+                </motion.div>
+
+                <motion.div {...cardAnim}>
+                  <div className="panel secondary">
+                    <div className="panel-head">
+                      <div className="panel-title">Portfolio summary</div>
+                      <p className="panel-subtitle">Aggregates only the tokens you created.</p>
+                    </div>
+                    <div className="portfolio-summary compact">
+                      <div>
+                        <div className="label">Tokens</div>
+                        <div className="value">{createdTokenStats.count}</div>
+                      </div>
+                      <div>
+                        <div className="label">Raised</div>
+                        <div className="value">{usd(createdTokenStats.raised)}</div>
+                      </div>
+                      <div>
+                        <div className="label">Market cap</div>
+                        <div className="value">{usd(createdTokenStats.marketCap)}</div>
+                      </div>
+                      <div>
+                        <div className="label">Holders</div>
+                        <div className="value">{createdTokenStats.holders}</div>
+                      </div>
+                    </div>
+                    <div className="draft-preview">
+                      {createdTokens.slice(0, 4).map(token => (
+                        <div key={token.token} className="preview-row">
+                          <span>
+                            {token.name} ({token.symbol})
+                          </span>
+                          <span>{shortAddress(token.token)}</span>
+                        </div>
+                      ))}
+                      {!createdTokens.length && (
+                        <div className="preview-row">
+                          <span>No tokens yet</span>
+                          <span className="label">Create one to populate this list</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </section>
+
+              <section className="grid portfolio-analytics">
+                <motion.div {...cardAnim}>
+                  <div className="panel">
+                    <div className="panel-head">
+                      <div>
+                        <div className="panel-title">Equity curve</div>
+                        <p className="panel-subtitle">NAV feed (mocked) to keep charts visible.</p>
+                      </div>
+                      <div className={`pill ${equityChange.absolute >= 0 ? 'pill-positive' : 'pill-negative'}`}>
+                        {equityChange.absolute >= 0 ? '+' : '-'}
+                        {usd(Math.abs(equityChange.absolute))}
+                        <span className="label">{equityChange.percent.toFixed(2)}%</span>
+                      </div>
+                    </div>
+                    <div className="chart-meta">
+                      <div>
+                        <div className="label">Balance</div>
+                        <div className="value">{usd(latestEquity.value)}</div>
+                      </div>
+                      <div>
+                        <div className="label">Deposits</div>
+                        <div className="value">{usd(latestEquity.deposits)}</div>
+                      </div>
+                      <div>
+                        <div className="label">Net flow</div>
+                        <div className={`value ${netFlow >= 0 ? 'positive' : 'negative'}`}>
+                          {netFlow >= 0 ? '+' : '-'}
+                          {usd(Math.abs(netFlow))}
+                        </div>
+                      </div>
+                      <span className="pill pill-live">mock</span>
+                    </div>
+                    <div className="chart" role="img" aria-label="Portfolio equity curve">
+                      <ResponsiveContainer width="100%" height={230}>
+                        <AreaChart data={portfolioHistory}>
+                          <defs>
+                            <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#7ae0ff" stopOpacity={0.7} />
+                              <stop offset="100%" stopColor="#7ae0ff" stopOpacity={0.05} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis yAxisId="value" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis yAxisId="pnl" orientation="right" tick={false} axisLine={false} />
+                          <Tooltip
+                            contentStyle={{ background: '#0c0f1b', border: '1px solid #7ae0ff', color: '#e8f2ff' }}
+                            labelStyle={{ color: '#e8f2ff' }}
+                          />
+                          <Area
+                            yAxisId="value"
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#7ae0ff"
+                            fill="url(#equityFill)"
+                            strokeWidth={2.2}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                          <Line
+                            yAxisId="pnl"
+                            type="monotone"
+                            dataKey="pnl"
+                            stroke="#c08bff"
+                            strokeWidth={1.6}
+                            dot={false}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div {...cardAnim}>
+                  <div className="panel secondary">
+                    <div className="panel-head">
+                      <div className="panel-title">Alpha / beta</div>
+                      <p className="panel-subtitle">Strategy vs market correlation (mock feed).</p>
+                    </div>
+                    <div className="chart-meta">
+                      <div className="chart-icon">
+                        <Activity size={16} />
+                        <span className="label">Alpha</span>
+                        <span className="value">{(alphaSeries.at(-1)?.alpha ?? 0).toFixed(2)}x</span>
+                      </div>
+                      <div className="chart-icon">
+                        <TrendingUp size={16} />
+                        <span className="label">Beta</span>
+                        <span className="value">{(alphaSeries.at(-1)?.beta ?? 0).toFixed(2)}x</span>
+                      </div>
+                      <div className="chart-icon">
+                        <Gauge size={16} />
+                        <span className="label">Health</span>
+                        <span className="value">{riskHealth}%</span>
+                      </div>
+                    </div>
+                    <div className="chart" role="img" aria-label="Alpha and beta chart">
+                      <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={alphaSeries}>
+                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis
+                            tick={{ fill: '#94a7c6', fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                            domain={['dataMin', 'dataMax']}
+                          />
+                          <Tooltip
+                            contentStyle={{ background: '#0c0f1b', border: '1px solid #7df7c2', color: '#e8f2ff' }}
+                            labelStyle={{ color: '#e8f2ff' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="alpha"
+                            stroke="#7df7c2"
+                            strokeWidth={2}
+                            dot={false}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="beta"
+                            stroke="#7ae0ff"
+                            strokeWidth={2}
+                            dot={false}
+                            strokeDasharray="5 5"
+                            isAnimationActive={allowChartAnimation}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="chart-stat-grid">
+                      <div className="chart-stat">
+                        <div className="label">Drawdown</div>
+                        <div className="value">{(Math.random() * 5 + 2).toFixed(2)}%</div>
+                      </div>
+                      <div className="chart-stat">
+                        <div className="label">Stability</div>
+                        <div className="risk-meter" aria-label={`Portfolio health ${riskHealth}%`}>
+                          <div className="risk-meter-fill" style={{ width: `${riskHealth}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div {...cardAnim}>
+                  <div className="panel secondary">
+                    <div className="panel-head">
+                      <div className="panel-title">Holdings map</div>
+                      <p className="panel-subtitle">Normalized positions (mock allocation).</p>
+                    </div>
+                    <div className="chart" role="img" aria-label="Portfolio allocation donut">
+                      <ResponsiveContainer width="100%" height={240}>
+                        <RadialBarChart
+                          innerRadius="30%"
+                          outerRadius="95%"
+                          data={allocationChartData}
+                          startAngle={90}
+                          endAngle={-270}
+                        >
+                          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                          <RadialBar background dataKey="value" cornerRadius={8} isAnimationActive={allowChartAnimation} />
+                          <Tooltip
+                            formatter={(value: number, name: string, entry: any) =>
+                              [`${value.toFixed(1)}%`, entry?.payload?.symbol ?? name]
+                            }
+                            contentStyle={{ background: '#0c0f1b', border: '1px solid #7ae0ff', color: '#e8f2ff' }}
+                            itemStyle={{ color: '#e8f2ff' }}
+                            labelStyle={{ color: '#e8f2ff' }}
+                          />
+                        </RadialBarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="chart-legend">
+                      {allocationSlices.map(slice => (
+                        <div key={slice.name} className="legend-chip">
+                          <span className="legend-swatch" style={{ background: slice.color }} />
+                          <span className="value">{slice.symbol ?? slice.name}</span>
+                          <span className="label">{slice.value.toFixed(1)}%</span>
+                        </div>
+                      ))}
+                      {topAllocation && (
+                        <div className="chart-stat" style={{ marginTop: 8 }}>
+                          <div className="label">Top slice</div>
+                          <div className="value">
+                            {topAllocation.symbol ?? topAllocation.name} · {topAllocation.value.toFixed(1)}%
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div {...cardAnim}>
+                  <div className="panel">
+                    <div className="panel-head">
+                      <div className="panel-title">Net flows</div>
+                      <p className="panel-subtitle">Deposits vs withdrawals (mocked).</p>
+                    </div>
+                    <div className="chart" role="img" aria-label="Bar chart of inflows and outflows">
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={flowChartData}>
+                          <CartesianGrid stroke="rgba(148, 167, 198, 0.12)" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: '#94a7c6', fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <Tooltip
+                            formatter={(value: number) => usd(Math.abs(value))}
+                            contentStyle={{ background: '#0c0f1b', border: '1px solid #c08bff', color: '#e8f2ff' }}
+                            labelStyle={{ color: '#e8f2ff' }}
+                          />
+                          <Bar
+                            dataKey="inflow"
+                            name="Inflow"
+                            stackId="flows"
+                            fill="#7df7c2"
+                            radius={[8, 8, 0, 0]}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                          <Bar
+                            dataKey="outflow"
+                            name="Outflow"
+                            stackId="flows"
+                            fill="#ff8ba7"
+                            radius={[0, 0, 8, 8]}
+                            isAnimationActive={allowChartAnimation}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="chart-stat-grid">
+                      <div className="chart-stat">
+                        <div className="label">Latest inflow</div>
+                        <div className="value">{usd(latestFlow.inflow ?? 0)}</div>
+                      </div>
+                      <div className="chart-stat">
+                        <div className="label">Latest outflow</div>
+                        <div className="value">{usd(latestFlow.outflow ?? 0)}</div>
+                      </div>
+                      <div className="chart-stat">
+                        <div className="label">Net</div>
+                        <div className={`value ${netFlow >= 0 ? 'positive' : 'negative'}`}>
+                          {netFlow >= 0 ? '+' : '-'}
+                          {usd(Math.abs(netFlow))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </section>
+            </>
           )}
           {activePage === 'create' && (
             <section className="grid create-grid">
