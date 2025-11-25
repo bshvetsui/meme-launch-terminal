@@ -132,7 +132,20 @@ export default function App() {
   const MAX_TOKENS = 300;
   const tokenUpdateQueue = useRef<Token[]>([]);
   const tokenFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [createdTokens, setCreatedTokens] = useState<Token[]>([]);
+  const [createdTokens, setCreatedTokens] = useState<Token[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(CREATED_STORAGE_KEY);
+      if (stored) {
+        const parsed: Token[] = JSON.parse(stored);
+        return parsed;
+      }
+    } catch (error) {
+      console.warn("Failed to restore created tokens", error);
+    }
+    return [];
+  });
+  const createdTokensRef = useRef<Token[]>(createdTokens);
   const [tokensLoaded, setTokensLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activePage, setActivePage] = useState<PageKey>("dashboard");
@@ -193,23 +206,14 @@ export default function App() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const storedCreated = localStorage.getItem(CREATED_STORAGE_KEY);
-      if (storedCreated) {
-        const parsed: Token[] = JSON.parse(storedCreated);
-        setCreatedTokens(parsed);
-      }
-    } catch (error) {
-      console.warn("Failed to restore created tokens", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
       localStorage.setItem(CREATED_STORAGE_KEY, JSON.stringify(createdTokens));
     } catch (error) {
       console.warn("Failed to persist created tokens", error);
     }
+  }, [createdTokens]);
+
+  useEffect(() => {
+    createdTokensRef.current = createdTokens;
   }, [createdTokens]);
 
   useEffect(() => {
@@ -219,6 +223,16 @@ export default function App() {
       return Array.from(map.values()).slice(0, MAX_TOKENS);
     });
   }, [createdTokens]);
+
+  useEffect(() => {
+    if (!createdTokens.length && !tokensLoaded) return;
+    setTokens(prev => {
+      const map = new Map<string, Token>();
+      createdTokensRef.current.forEach(t => map.set(t.token, t));
+      prev.forEach(t => map.set(t.token, t));
+      return Array.from(map.values()).slice(0, MAX_TOKENS);
+    });
+  }, [tokensLoaded, createdTokens]);
 
   useEffect(() => {
     // Cursor trail off for performance
@@ -280,8 +294,10 @@ export default function App() {
           if (!pageTokens.length) break;
         }
         if (!cancelled && collected.length) {
-          const unique = Array.from(new Map(collected.map(t => [t.token, t])).values());
-          unique.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+          const map = new Map<string, Token>();
+          createdTokensRef.current.forEach(t => map.set(t.token, t));
+          collected.forEach(t => map.set(t.token, t));
+          const unique = Array.from(map.values()).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
           setTokens(unique.slice(0, MAX_TOKENS));
         }
       } catch (error) {

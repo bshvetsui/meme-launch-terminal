@@ -9,6 +9,14 @@ interface TokenTableProps {
 }
 
 export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
+  const getFallbackName = (token: Token) => {
+    if (token.name && token.name.trim()) return token.name;
+    if (token.token && token.token.length >= 3) {
+      return `${token.token.slice(0, 3)}...`;
+    }
+    return '...';
+  };
+
   const formatPrice = (price?: number) => {
     if (!price) return '$0';
     if (price >= 1000000) return `$${(price / 1000000).toFixed(1)}M`;
@@ -75,7 +83,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({ tokens, loading }) => {
                     className="token-avatar"
                   />
                   <div>
-                    <div className="token-name">{token.name || 'Unknown Token'}</div>
+                    <div className="token-name">{getFallbackName(token)}</div>
                     <div className="token-time">{getTimeAgo(token.createdAt)}</div>
                   </div>
                 </div>
